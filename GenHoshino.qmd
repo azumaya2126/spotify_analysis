@@ -173,9 +173,7 @@ gen %>%
 
 `dancability`が高い順トップ10を見てみる。
 
-[桜の森](https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d)が堂々1位で嬉しくなりました。他には、[Sonow Men](https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a)、[Down Town](https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384)、[湯気](https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8)あたり、納得の布陣。
-
-[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)や[ストーブ](https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960)はちょっと意外ですね。
+[桜の森](https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d)が堂々1位で嬉しくなりました。他には、[Sonow Men](https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a)、[Down Town](https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384)、[湯気](https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8)あたり、納得の布陣。[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)や[ストーブ](https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960)はちょっと意外。
 
 ```{r}
 gen %>% 
@@ -184,7 +182,7 @@ gen %>%
   head(10)
 ```
 
-ちなみに下位10曲はこちら。個人的に[肌](https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9)は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね。割と納得。
+ちなみに下位10曲はこちら。個人的に[肌](https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9)は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね、割と納得。
 
 ```{r}
 gen %>% 
