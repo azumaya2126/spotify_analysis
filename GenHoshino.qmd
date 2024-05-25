@@ -1,0 +1,202 @@
+---
+title: "Rで星野源のアルバム楽曲を分析してみる"
+author: "あずま"
+date: "2024-05-25"
+format: html
+---
+
+## やること
+
+-   Spotifyの楽曲情報が取得できるみたいなので触ってみる
+-   Pythonの分析は多いが（Pythonは苦手なので）Rでやってみよう
+-   今回は星野源のアルバム楽曲を数値で可視化してみる
+
+## Spotifyの情報を使えるようにする
+
+### パッケージインストール
+
+RでSpotifyの情報を取得するパッケージ[spotifyr](https://www.rcharlie.com/spotifyr/)がある。
+
+CRAN version 2.1.0であれば以下でインストールできるっぽい。
+
+```{r eval = FALSE}
+install.packages('spotifyr')
+```
+
+大好き`tidyverse`、ほか使うパッケージを読み込んでおく。
+
+```{r}
+pacman::p_load(spotifyr, tidyverse, corrplot)
+```
+
+::: {.callout-tip appearance="simple"}
+最近は`pacman`パッケージの`p_load()` をよく使っています。`install.packages()`と`library()`の合わせ技みたいな感じで、パッケージがインストールされていなかったらインストールを含め、読み込みまでやってくれる。
+
+R人生で一度だけ`pacman`をインストールしておけば、「このパッケージってインストールしてたかな」から解放されるし、パッケージ読み込みが1行で済むのは案外便利。
+:::
+
+### API情報を取得
+
+1.  Spotifyのアカウントで[Spotify for Developers](https://developer.spotify.com/)にログインする
+
+2.  DashboardからCreate appでappを作る（appってなんだ？）
+
+3.  必要事項に入力してSave（Redirect URIsは何を入れたら分からなかったけど例に書いてあるURL入れたらOKだった。いいのか？）
+
+4.  Dashboardからappを選択して、Settings \> Basic InformationからCliant IDとClient secret（隠されている）をコピーして、以下の通り実行
+
+![](images/cliant.png){fig-align="center" width="674"}
+
+```{r eval = FALSE}
+Sys.setenv(SPOTIFY_CLIENT_ID = 'xxxxxxxxxxxxxxxxxxxxx')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = 'xxxxxxxxxxxxxxxxxxxxx')
+
+access_token <- get_spotify_access_token()
+```
+
+```{r include = FALSE}
+Sys.setenv(SPOTIFY_CLIENT_ID = "44af3e1025034575bf0766d197d738e6")
+Sys.setenv(SPOTIFY_CLIENT_SECRET = "d96455b022fe4e04876162dfab9c66b5")
+access_token <- get_spotify_access_token()
+```
+
+これでSpotifyの情報取り放題！わくわく！
+
+## 星野源の楽曲情報を取りに行く
+
+`get_artist_audio_features`関数を使って、アーティストの楽曲情報を取りに行く。引数にはアーティスト名もしくはアーティストIDを入れる。
+
+```{r}
+gen <- get_artist_audio_features("Gen Hoshino") 
+```
+
+::: {.callout-tip appearance="simple"}
+アーティストIDはSpotifyの[アーティストページ](https://open.spotify.com/intl-ja/artist/1S2S00lgLYLGHWA44qGEUs?si=wODSUxHNRj-_zgKo-dMrWQ)の　artist/[**XXXXXX**]{.underline}?si=　の部分
+:::
+
+確認してみるとちゃんと星野源の情報が取れています。最新が上に表示されるのね。
+
+```{r}
+head(gen)
+```
+
+列多すぎるので列名だけ見てみる。いろんなことできそうで楽しい。`dancability`なんて星野源の分析したくなるでしょ。
+
+```{r}
+colnames(gen)
+```
+
+## 指標を確認
+
+分からなさそうな指標をChat GPTに聞いてみた。間違っているかもしれない。
+
+`dancability`
+
+:   楽曲がどれだけ踊りやすいかを示します。0.0から1.0までの範囲で、1.0に近いほどダンサブルです。
+
+`energy`
+
+:   楽曲の強度と活動量を示します。0.0から1.0までの範囲で、1.0に近いほどエネルギッシュです。
+
+`key`
+
+:   楽曲の音楽的なキーを整数で表します。0（C）から11（B）までの範囲です。
+
+`loudness`
+
+:   楽曲の平均音量をデシベル（dB）で表します。
+
+`mode`
+
+:   楽曲のモードを示します。メジャー（1）かマイナー（0）です。
+
+`speechiness`
+
+:   楽曲の中で言葉がどれだけ支配的かを示します。0.0から1.0までの範囲で、1.0に近いほどスピーチ（話し言葉）が多いです。
+
+`acousticness`
+
+:   楽曲がどれだけアコースティックであるかを示します。0.0から1.0までの範囲で、1.0に近いほどアコースティックです。
+
+`instrumentalness`
+
+:   楽曲がどれだけインストゥルメンタル（ボーカルがない）かを示します。0.0から1.0までの範囲で、1.0に近いほどインストゥルメンタルです。
+
+`liveness`
+
+:   楽曲がどれだけライブ録音のように感じるかを示します。0.0から1.0までの範囲で、1.0に近いほどライブ感があります。
+
+`valence`
+
+:   楽曲のポジティブさを示します。0.0から1.0までの範囲で、1.0に近いほどポジティブ（陽気）です。
+
+`tempo`
+
+:   楽曲のテンポ（BPM：Beats Per Minute）を表します。
+
+`duration_ms`
+
+:   楽曲の長さをミリ秒で表します。
+
+なんとなくわかったので、使いそうな列だけ抽出する。
+
+```{r}
+gen <- gen %>% 
+  select(album_name, album_release_year, track_name, 
+         danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)
+
+head(gen)
+```
+
+## 分析
+
+今回は、星野源のアルバム5枚の変遷を耳で知っているけど、それって数値にどう表れているんだろう？を見てみたい。特に、`dancability`が気になる。
+
+とりあえずアルバム5枚全曲で指標の相関を見てみる。
+
+```{r}
+gen %>% 
+  select_if(is.numeric) %>% 
+  cor() %>% 
+  corrplot(tl.col="black",  addCoef.col = "black", method = "shade", shade.col = NA)
+
+
+```
+
+`dancability`と`energy` って相関ないんだ。
+
+しかも`dancability`と`tempo`って負の相関なんだ！？`tempo`って`dancability`以外とほとんど相関がないから、他のエネルギッシュとかポジティブさはテンポの要素を抜いた指標になっているのかしら。
+
+ほかには、`album_release_year`と`loudness`は正の相関、`album_release_year`と`acousticness`は負の相関なので、昔の曲の方が静かでアコースティックな体感と合ってますね。`album_release_year` と`duration_ms`を見ると正の相関なので、最近の曲は短いって世間の流れに乗っていない。これもラジオで聴く話と近い気が。
+
+### `dancability`を見てみる
+
+`dancability`が高い順トップ10を見てみる。
+
+[桜の森](https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d)が堂々1位で嬉しくなりました。他には、[Sonow Men](https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a)、[Down Town](https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384)、[湯気](https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8)あたり、納得の布陣。
+
+[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)や[ストーブ](https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960)はちょっと意外ですね。
+
+```{r}
+gen %>% 
+  arrange(desc(danceability)) %>% 
+  select(album_name, album_release_year, track_name, danceability) %>% 
+  head(10)
+```
+
+ちなみに下位10曲はこちら。個人的に[肌](https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9)は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね。割と納得。
+
+```{r}
+gen %>% 
+  arrange(desc(danceability)) %>% 
+  select(album_name, album_release_year, track_name, danceability) %>% 
+  tail(10)
+```
+
+## つづく
+
+## 参考
+
+[spotifyr](https://www.rcharlie.com/spotifyr/)
+
+[【R】Spotify APIを利用して関連するアーティストをDigりまくる](https://sunaninattahito.hatenablog.com/entry/2021/06/01/202317)
