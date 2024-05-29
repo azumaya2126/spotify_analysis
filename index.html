@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="あずま">
-<meta name="dcterms.date" content="2024-05-25">
+<meta name="dcterms.date" content="2024-05-29">
 
-<title>Rで星野源のアルバム楽曲を分析してみる</title>
+<title>RでSpotifyの分析</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -73,15 +73,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </head>
 
-<body class="fullcontent">
+<body>
 
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#やりたいこと" id="toc-やりたいこと" class="nav-link active" data-scroll-target="#やりたいこと">やりたいこと</a></li>
+  <li><a href="#準備" id="toc-準備" class="nav-link" data-scroll-target="#準備">準備</a>
+  <ul class="collapse">
+  <li><a href="#spotifyの情報を使えるようにする" id="toc-spotifyの情報を使えるようにする" class="nav-link" data-scroll-target="#spotifyの情報を使えるようにする">Spotifyの情報を使えるようにする</a>
+  <ul class="collapse">
+  <li><a href="#パッケージのインストール" id="toc-パッケージのインストール" class="nav-link" data-scroll-target="#パッケージのインストール">パッケージのインストール</a></li>
+  <li><a href="#api情報を取得" id="toc-api情報を取得" class="nav-link" data-scroll-target="#api情報を取得">API情報を取得</a></li>
+  </ul></li>
+  <li><a href="#分析したこと" id="toc-分析したこと" class="nav-link" data-scroll-target="#分析したこと">分析したこと</a>
+  <ul class="collapse">
+  <li><a href="#初めての分析" id="toc-初めての分析" class="nav-link" data-scroll-target="#初めての分析">初めての分析</a></li>
+  </ul></li>
+  <li><a href="#これから分析したいネタ" id="toc-これから分析したいネタ" class="nav-link" data-scroll-target="#これから分析したいネタ">これから分析したいネタ</a></li>
+  <li><a href="#参考" id="toc-参考" class="nav-link" data-scroll-target="#参考">参考</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Rで星野源のアルバム楽曲を分析してみる</h1>
+<h1 class="title">RでSpotifyの分析</h1>
 </div>
 
 
@@ -98,7 +120,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 25, 2024</p>
+      <p class="date">May 29, 2024</p>
     </div>
   </div>
   
@@ -110,26 +132,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="やること" class="level2">
-<h2 class="anchored" data-anchor-id="やること">やること</h2>
+<section id="やりたいこと" class="level1">
+<h1>やりたいこと</h1>
 <ul>
-<li>Spotifyの楽曲情報が取得できるみたいなので触ってみる</li>
-<li>Pythonの分析は多いが（Pythonは苦手なので）Rでやってみよう</li>
-<li>今回は星野源のアルバム楽曲を数値で可視化してみる</li>
+<li>世の中にPythonを使ったSpotify分析はたくさんあるけど、Rでもやってみよう</li>
+<li>これまでなんとなく感じていた音楽を数値的に見てみよう</li>
 </ul>
 </section>
+<section id="準備" class="level1">
+<h1>準備</h1>
 <section id="spotifyの情報を使えるようにする" class="level2">
 <h2 class="anchored" data-anchor-id="spotifyの情報を使えるようにする">Spotifyの情報を使えるようにする</h2>
-<section id="パッケージインストール" class="level3">
-<h3 class="anchored" data-anchor-id="パッケージインストール">パッケージインストール</h3>
-<p>RでSpotifyの情報を取得するパッケージ<a href="https://www.rcharlie.com/spotifyr/">spotifyr</a>がある。</p>
-<p>CRAN version 2.1.0であれば以下でインストールできるっぽい。</p>
+<section id="パッケージのインストール" class="level3">
+<h3 class="anchored" data-anchor-id="パッケージのインストール">パッケージのインストール</h3>
+<p>RでSpotifyの情報を取得するパッケージ<a href="https://www.rcharlie.com/spotifyr/">spotifyr</a>がある。 CRAN version 2.1.0であれば以下でインストールできるっぽい。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">'spotifyr'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>大好き<code>tidyverse</code>、ほか使うパッケージを読み込んでおく。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(spotifyr, tidyverse, corrplot)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># パッケージをインストールして読み込み</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(spotifyr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="callout callout-style-simple callout-tip">
 <div class="callout-body d-flex">
@@ -157,311 +176,40 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </figure>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_ID =</span> <span class="st">'xxxxxxxxxxxxxxxxxxxxx'</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_SECRET =</span> <span class="st">'xxxxxxxxxxxxxxxxxxxxx'</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>access_token <span class="ot">&lt;-</span> <span class="fu">get_spotify_access_token</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_ID =</span> <span class="st">'xxxxxxxxxxxxxxxxxxxxx'</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_SECRET =</span> <span class="st">'xxxxxxxxxxxxxxxxxxxxx'</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>access_token <span class="ot">&lt;-</span> <span class="fu">get_spotify_access_token</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>これでSpotifyの情報取り放題！わくわく！</p>
 </section>
 </section>
-<section id="星野源の楽曲情報を取りに行く" class="level2">
-<h2 class="anchored" data-anchor-id="星野源の楽曲情報を取りに行く">星野源の楽曲情報を取りに行く</h2>
-<p><code>get_artist_audio_features</code>関数を使って、アーティストの楽曲情報を取りに行く。引数にはアーティスト名もしくはアーティストIDを入れる。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> <span class="fu">get_artist_audio_features</span>(<span class="st">"Gen Hoshino"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="callout callout-style-simple callout-tip">
-<div class="callout-body d-flex">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-body-container">
-<p>アーティストIDはSpotifyの<a href="https://open.spotify.com/intl-ja/artist/1S2S00lgLYLGHWA44qGEUs?si=wODSUxHNRj-_zgKo-dMrWQ">アーティストページ</a>の　artist/<u><strong>XXXXXX</strong></u>?si=　の部分</p>
-</div>
-</div>
-</div>
-<p>確認してみるとちゃんと星野源の情報が取れています。最新が上に表示されるのね。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>  artist_name              artist_id               album_id album_type
-1 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-2 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-3 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-4 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-5 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-6 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-                                                                                                                                                                                                                      album_images
-1 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-2 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-3 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-4 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-5 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-6 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-  album_release_date album_release_year album_release_date_precision
-1         2018-12-19               2018                          day
-2         2018-12-19               2018                          day
-3         2018-12-19               2018                          day
-4         2018-12-19               2018                          day
-5         2018-12-19               2018                          day
-6         2018-12-19               2018                          day
-  danceability energy key loudness mode speechiness acousticness
-1        0.629  0.441   9   -4.614    1      0.1260     0.033900
-2        0.598  0.819   9   -2.619    1      0.0911     0.000810
-3        0.592  0.842   6   -3.914    1      0.0612     0.000328
-4        0.450  0.769   9   -5.318    1      0.1860     0.004040
-5        0.807  0.519   2   -6.851    1      0.0518     0.034600
-6        0.654  0.848   5   -5.027    0      0.0714     0.012600
-  instrumentalness liveness valence   tempo               track_id
-1         0.00e+00   0.2340   0.782  78.177 4hQ5tBCwPRkzhFB424U63U
-2         0.00e+00   0.2180   0.878 158.115 1flvuaMS27JxpEBL0u2cWc
-3         1.58e-06   0.1290   0.591  97.093 7cwzoU55oSCNP7m8dWDShQ
-4         7.07e-05   0.0762   0.811 122.108 0YEjAa5T0NQwvB7uz1dJvW
-5         3.71e-05   0.0692   0.462 141.996 1PQdRaB0zLMBpm9YiTaTVW
-6         1.63e-04   0.0875   0.718  85.989 3Hz1Rui4VVCnVl6QMpjCYE
-                                                      analysis_url
-1 https://api.spotify.com/v1/audio-analysis/4hQ5tBCwPRkzhFB424U63U
-2 https://api.spotify.com/v1/audio-analysis/1flvuaMS27JxpEBL0u2cWc
-3 https://api.spotify.com/v1/audio-analysis/7cwzoU55oSCNP7m8dWDShQ
-4 https://api.spotify.com/v1/audio-analysis/0YEjAa5T0NQwvB7uz1dJvW
-5 https://api.spotify.com/v1/audio-analysis/1PQdRaB0zLMBpm9YiTaTVW
-6 https://api.spotify.com/v1/audio-analysis/3Hz1Rui4VVCnVl6QMpjCYE
-  time_signature
-1              4
-2              4
-3              4
-4              4
-5              4
-6              4
-                                                                                                                                                                                                artists
-1 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-2 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-3 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-4 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-5 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-6 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-  available_markets disc_number duration_ms explicit
-1                JP           1      182000    FALSE
-2                JP           1      251266    FALSE
-3                JP           1      187000    FALSE
-4                JP           1      239933    FALSE
-5                JP           1      206266    FALSE
-6                JP           1      221000    FALSE
-                                                track_href is_local  track_name
-1 https://api.spotify.com/v1/tracks/4hQ5tBCwPRkzhFB424U63U    FALSE   Pop Virus
-2 https://api.spotify.com/v1/tracks/1flvuaMS27JxpEBL0u2cWc    FALSE          恋
-3 https://api.spotify.com/v1/tracks/7cwzoU55oSCNP7m8dWDShQ    FALSE  Get a Feel
-4 https://api.spotify.com/v1/tracks/0YEjAa5T0NQwvB7uz1dJvW    FALSE          肌
-5 https://api.spotify.com/v1/tracks/1PQdRaB0zLMBpm9YiTaTVW    FALSE Pair Dancer
-6 https://api.spotify.com/v1/tracks/3Hz1Rui4VVCnVl6QMpjCYE    FALSE     Present
-                                                                                            track_preview_url
-1 https://p.scdn.co/mp3-preview/aac3bbc9cc1adfbf483c6e8944db788e9e4452b2?cid=44af3e1025034575bf0766d197d738e6
-2 https://p.scdn.co/mp3-preview/8b681e4045fc31a9f7d6661e67988226cca7d839?cid=44af3e1025034575bf0766d197d738e6
-3 https://p.scdn.co/mp3-preview/69e726a36a79bf9416eccdb21b4c92b662f2b37b?cid=44af3e1025034575bf0766d197d738e6
-4 https://p.scdn.co/mp3-preview/96ce2d84c4b8ed943e73e8c8e3a24489cd796b8e?cid=44af3e1025034575bf0766d197d738e6
-5 https://p.scdn.co/mp3-preview/dd6da592a13cf625dd8610bd4417d280539a8137?cid=44af3e1025034575bf0766d197d738e6
-6 https://p.scdn.co/mp3-preview/495ceb774a53b4342dbde9460197c7439e82b0b3?cid=44af3e1025034575bf0766d197d738e6
-  track_number  type                            track_uri
-1            1 track spotify:track:4hQ5tBCwPRkzhFB424U63U
-2            2 track spotify:track:1flvuaMS27JxpEBL0u2cWc
-3            3 track spotify:track:7cwzoU55oSCNP7m8dWDShQ
-4            4 track spotify:track:0YEjAa5T0NQwvB7uz1dJvW
-5            5 track spotify:track:1PQdRaB0zLMBpm9YiTaTVW
-6            6 track spotify:track:3Hz1Rui4VVCnVl6QMpjCYE
-                                  external_urls.spotify album_name key_name
-1 https://open.spotify.com/track/4hQ5tBCwPRkzhFB424U63U  POP VIRUS        A
-2 https://open.spotify.com/track/1flvuaMS27JxpEBL0u2cWc  POP VIRUS        A
-3 https://open.spotify.com/track/7cwzoU55oSCNP7m8dWDShQ  POP VIRUS       F#
-4 https://open.spotify.com/track/0YEjAa5T0NQwvB7uz1dJvW  POP VIRUS        A
-5 https://open.spotify.com/track/1PQdRaB0zLMBpm9YiTaTVW  POP VIRUS        D
-6 https://open.spotify.com/track/3Hz1Rui4VVCnVl6QMpjCYE  POP VIRUS        F
-  mode_name key_mode
-1     major  A major
-2     major  A major
-3     major F# major
-4     major  A major
-5     major  D major
-6     minor  F minor</code></pre>
-</div>
-</div>
-<p>列多すぎるので列名だけ見てみる。いろんなことできそうで楽しい。<code>dancability</code>なんて星野源の分析したくなるでしょ。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code> [1] "artist_name"                  "artist_id"                   
- [3] "album_id"                     "album_type"                  
- [5] "album_images"                 "album_release_date"          
- [7] "album_release_year"           "album_release_date_precision"
- [9] "danceability"                 "energy"                      
-[11] "key"                          "loudness"                    
-[13] "mode"                         "speechiness"                 
-[15] "acousticness"                 "instrumentalness"            
-[17] "liveness"                     "valence"                     
-[19] "tempo"                        "track_id"                    
-[21] "analysis_url"                 "time_signature"              
-[23] "artists"                      "available_markets"           
-[25] "disc_number"                  "duration_ms"                 
-[27] "explicit"                     "track_href"                  
-[29] "is_local"                     "track_name"                  
-[31] "track_preview_url"            "track_number"                
-[33] "type"                         "track_uri"                   
-[35] "external_urls.spotify"        "album_name"                  
-[37] "key_name"                     "mode_name"                   
-[39] "key_mode"                    </code></pre>
-</div>
-</div>
-</section>
-<section id="指標を確認" class="level2">
-<h2 class="anchored" data-anchor-id="指標を確認">指標を確認</h2>
-<p>分からなさそうな指標をChat GPTに聞いてみた。間違っているかもしれない。</p>
-<dl>
-<dt><code>dancability</code></dt>
-<dd>
-<p>楽曲がどれだけ踊りやすいかを示します。0.0から1.0までの範囲で、1.0に近いほどダンサブルです。</p>
-</dd>
-<dt><code>energy</code></dt>
-<dd>
-<p>楽曲の強度と活動量を示します。0.0から1.0までの範囲で、1.0に近いほどエネルギッシュです。</p>
-</dd>
-<dt><code>key</code></dt>
-<dd>
-<p>楽曲の音楽的なキーを整数で表します。0（C）から11（B）までの範囲です。</p>
-</dd>
-<dt><code>loudness</code></dt>
-<dd>
-<p>楽曲の平均音量をデシベル（dB）で表します。</p>
-</dd>
-<dt><code>mode</code></dt>
-<dd>
-<p>楽曲のモードを示します。メジャー（1）かマイナー（0）です。</p>
-</dd>
-<dt><code>speechiness</code></dt>
-<dd>
-<p>楽曲の中で言葉がどれだけ支配的かを示します。0.0から1.0までの範囲で、1.0に近いほどスピーチ（話し言葉）が多いです。</p>
-</dd>
-<dt><code>acousticness</code></dt>
-<dd>
-<p>楽曲がどれだけアコースティックであるかを示します。0.0から1.0までの範囲で、1.0に近いほどアコースティックです。</p>
-</dd>
-<dt><code>instrumentalness</code></dt>
-<dd>
-<p>楽曲がどれだけインストゥルメンタル（ボーカルがない）かを示します。0.0から1.0までの範囲で、1.0に近いほどインストゥルメンタルです。</p>
-</dd>
-<dt><code>liveness</code></dt>
-<dd>
-<p>楽曲がどれだけライブ録音のように感じるかを示します。0.0から1.0までの範囲で、1.0に近いほどライブ感があります。</p>
-</dd>
-<dt><code>valence</code></dt>
-<dd>
-<p>楽曲のポジティブさを示します。0.0から1.0までの範囲で、1.0に近いほどポジティブ（陽気）です。</p>
-</dd>
-<dt><code>tempo</code></dt>
-<dd>
-<p>楽曲のテンポ（BPM：Beats Per Minute）を表します。</p>
-</dd>
-<dt><code>duration_ms</code></dt>
-<dd>
-<p>楽曲の長さをミリ秒で表します。</p>
-</dd>
-</dl>
-<p>なんとなくわかったので、使いそうな列だけ抽出する。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> gen <span class="sc">%&gt;%</span> </span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, </span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>         danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>  album_name album_release_year  track_name danceability energy loudness
-1  POP VIRUS               2018   Pop Virus        0.629  0.441   -4.614
-2  POP VIRUS               2018          恋        0.598  0.819   -2.619
-3  POP VIRUS               2018  Get a Feel        0.592  0.842   -3.914
-4  POP VIRUS               2018          肌        0.450  0.769   -5.318
-5  POP VIRUS               2018 Pair Dancer        0.807  0.519   -6.851
-6  POP VIRUS               2018     Present        0.654  0.848   -5.027
-  speechiness acousticness valence   tempo duration_ms
-1      0.1260     0.033900   0.782  78.177      182000
-2      0.0911     0.000810   0.878 158.115      251266
-3      0.0612     0.000328   0.591  97.093      187000
-4      0.1860     0.004040   0.811 122.108      239933
-5      0.0518     0.034600   0.462 141.996      206266
-6      0.0714     0.012600   0.718  85.989      221000</code></pre>
-</div>
-</div>
-</section>
-<section id="分析" class="level2">
-<h2 class="anchored" data-anchor-id="分析">分析</h2>
-<p>今回は、星野源のアルバム5枚の変遷を耳で知っているけど、それって数値にどう表れているんだろう？を見てみたい。特に、<code>dancability</code>が気になる。</p>
-<p>とりあえずアルバム5枚全曲で指標の相関を見てみる。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> </span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">corrplot</span>(<span class="at">tl.col=</span><span class="st">"black"</span>,  <span class="at">addCoef.col =</span> <span class="st">"black"</span>, <span class="at">method =</span> <span class="st">"shade"</span>, <span class="at">shade.col =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="index_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><code>dancability</code>と<code>energy</code> って相関ないんだ。</p>
-<p>しかも<code>dancability</code>と<code>tempo</code>って負の相関なんだ！？<code>tempo</code>って<code>dancability</code>以外とほとんど相関がないから、他のエネルギッシュとかポジティブさはテンポの要素を抜いた指標になっているのかしら。</p>
-<p>ほかには、<code>album_release_year</code>と<code>loudness</code>は正の相関、<code>album_release_year</code>と<code>acousticness</code>は負の相関なので、昔の曲の方が静かでアコースティックな体感と合ってますね。<code>album_release_year</code> と<code>duration_ms</code>を見ると正の相関なので、最近の曲は短いって世間の流れに乗っていない。これもラジオで聴く話と近い気が。</p>
-<section id="dancabilityを見てみる" class="level3">
-<h3 class="anchored" data-anchor-id="dancabilityを見てみる"><code>dancability</code>を見てみる</h3>
-<p><code>dancability</code>が高い順トップ10を見てみる。</p>
-<p><a href="https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d">桜の森</a>が堂々1位で嬉しくなりました。他には、<a href="https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a">Sonow Men</a>、<a href="https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384">Down Town</a>、<a href="https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8">湯気</a>あたり、納得の布陣。<a href="https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c">KIDS</a>や<a href="https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960">ストーブ</a>はちょっと意外。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>      album_name album_release_year                track_name danceability
-1  YELLOW DANCER               2015                    桜の森        0.870
-2  YELLOW DANCER               2015                  Snow Men        0.843
-3      POP VIRUS               2018                      KIDS        0.842
-4  YELLOW DANCER               2015 Nerd Strut (Instrumental)        0.834
-5  YELLOW DANCER               2015                 Down Town        0.829
-6     エピソード               2011                      湯気        0.816
-7      POP VIRUS               2018               Pair Dancer        0.807
-8     エピソード               2011                  ストーブ        0.797
-9  YELLOW DANCER               2015                       SUN        0.782
-10     POP VIRUS               2018                サピエンス        0.781</code></pre>
-</div>
-</div>
-<p>ちなみに下位10曲はこちら。個人的に<a href="https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9">肌</a>は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね、割と納得。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tail</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>   album_name album_release_year                      track_name danceability
-60  POP VIRUS               2018                        アイデア        0.478
-61   Stranger               2013                  レコードノイズ        0.472
-62  POP VIRUS               2018                              肌        0.450
-63 エピソード               2011                      エピソード        0.444
-64 ばかのうた               2010 さようならのうみ (Instrumental)        0.444
-65 ばかのうた               2010                        ただいま        0.443
-66   Stranger               2013                    ワークソング        0.413
-67   Stranger               2013                            季節        0.396
-68 ばかのうた               2010                      ばかのうた        0.366
-69 ばかのうた               2010                          老夫婦        0.352</code></pre>
-</div>
-</div>
+<section id="分析したこと" class="level2">
+<h2 class="anchored" data-anchor-id="分析したこと">分析したこと</h2>
+<section id="初めての分析" class="level3">
+<h3 class="anchored" data-anchor-id="初めての分析">初めての分析</h3>
+<p><a href="">星野源のアルバム楽曲を分析してみる</a></p>
 </section>
 </section>
-<section id="つづく" class="level2">
-<h2 class="anchored" data-anchor-id="つづく">つづく</h2>
+<section id="これから分析したいネタ" class="level2">
+<h2 class="anchored" data-anchor-id="これから分析したいネタ">これから分析したいネタ</h2>
+<ul>
+<li>星野源POP VIRUS以降</li>
+<li>星野源とSAKEROCKって数値違うのかな</li>
+<li>キリンジ時代の泰之曲と高樹曲</li>
+<li>荒井時代のユーミン</li>
+<li>キリンジとオフコースって似た成分あると思う</li>
+<li>sumikaと緑黄色社会って好きな成分同じだと思う</li>
+<li>大貫妙子「色彩都市」の薬師丸ひろ子・原田知世・ユーミンキャラメルママのカバー違いはなに</li>
+<li>似た系統の海外アーティストの曲は何か違うところあるのか</li>
+<li>クラシックってあるのかな？ラヴェルとドビュッシー</li>
+</ul>
 </section>
 <section id="参考" class="level2">
 <h2 class="anchored" data-anchor-id="参考">参考</h2>
 <p><a href="https://www.rcharlie.com/spotifyr/">spotifyr</a></p>
 <p><a href="https://sunaninattahito.hatenablog.com/entry/2021/06/01/202317">【R】Spotify APIを利用して関連するアーティストをDigりまくる</a></p>
+</section>
 </section>
 
 </main>

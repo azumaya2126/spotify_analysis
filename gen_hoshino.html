@@ -7,9 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="あずま">
-<meta name="dcterms.date" content="2024-05-25">
+<meta name="dcterms.date" content="2024-05-29">
 
-<title>Rで星野源のアルバム楽曲を分析してみる</title>
+<title>星野源のアルバム楽曲を分析してみる</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -59,29 +59,45 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="GenHoshino_files/libs/clipboard/clipboard.min.js"></script>
-<script src="GenHoshino_files/libs/quarto-html/quarto.js"></script>
-<script src="GenHoshino_files/libs/quarto-html/popper.min.js"></script>
-<script src="GenHoshino_files/libs/quarto-html/tippy.umd.min.js"></script>
-<script src="GenHoshino_files/libs/quarto-html/anchor.min.js"></script>
-<link href="GenHoshino_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="GenHoshino_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="GenHoshino_files/libs/bootstrap/bootstrap.min.js"></script>
-<link href="GenHoshino_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="GenHoshino_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="gen_hoshino_files/libs/clipboard/clipboard.min.js"></script>
+<script src="gen_hoshino_files/libs/quarto-html/quarto.js"></script>
+<script src="gen_hoshino_files/libs/quarto-html/popper.min.js"></script>
+<script src="gen_hoshino_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="gen_hoshino_files/libs/quarto-html/anchor.min.js"></script>
+<link href="gen_hoshino_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="gen_hoshino_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="gen_hoshino_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="gen_hoshino_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="gen_hoshino_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 
 
 </head>
 
-<body class="fullcontent">
+<body>
 
 <div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
-
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#やること" id="toc-やること" class="nav-link active" data-scroll-target="#やること">やること</a></li>
+  <li><a href="#準備" id="toc-準備" class="nav-link" data-scroll-target="#準備">準備</a></li>
+  <li><a href="#星野源の楽曲情報を取りに行く" id="toc-星野源の楽曲情報を取りに行く" class="nav-link" data-scroll-target="#星野源の楽曲情報を取りに行く">星野源の楽曲情報を取りに行く</a></li>
+  <li><a href="#指標を確認" id="toc-指標を確認" class="nav-link" data-scroll-target="#指標を確認">指標を確認</a></li>
+  <li><a href="#分析" id="toc-分析" class="nav-link" data-scroll-target="#分析">分析</a>
+  <ul class="collapse">
+  <li><a href="#dancabilityを見てみる" id="toc-dancabilityを見てみる" class="nav-link" data-scroll-target="#dancabilityを見てみる"><code>dancability</code>を見てみる</a></li>
+  </ul></li>
+  <li><a href="#つづく" id="toc-つづく" class="nav-link" data-scroll-target="#つづく">つづく</a></li>
+  </ul>
+</nav>
+</div>
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Rで星野源のアルバム楽曲を分析してみる</h1>
+<h1 class="title">星野源のアルバム楽曲を分析してみる</h1>
 </div>
 
 
@@ -98,7 +114,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 25, 2024</p>
+      <p class="date">May 29, 2024</p>
     </div>
   </div>
   
@@ -112,64 +128,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="やること" class="level2">
 <h2 class="anchored" data-anchor-id="やること">やること</h2>
-<ul>
-<li>Spotifyの楽曲情報が取得できるみたいなので触ってみる</li>
-<li>Pythonの分析は多いが（Pythonは苦手なので）Rでやってみよう</li>
-<li>今回は星野源のアルバム楽曲を数値で可視化してみる</li>
-</ul>
+<p>RでSpotify分析やってみる第一弾、初回なので何ができるかを確かめつつ、星野源のアルバム楽曲を数値で可視化してみる。</p>
 </section>
-<section id="spotifyの情報を使えるようにする" class="level2">
-<h2 class="anchored" data-anchor-id="spotifyの情報を使えるようにする">Spotifyの情報を使えるようにする</h2>
-<section id="パッケージインストール" class="level3">
-<h3 class="anchored" data-anchor-id="パッケージインストール">パッケージインストール</h3>
-<p>RでSpotifyの情報を取得するパッケージ<a href="https://www.rcharlie.com/spotifyr/">spotifyr</a>がある。</p>
-<p>CRAN version 2.1.0であれば以下でインストールできるっぽい。</p>
+<section id="準備" class="level2">
+<h2 class="anchored" data-anchor-id="準備">準備</h2>
+<p>ライブラリ読み込みとAPI取得について、以下のコードの説明は<a href="https://azumaya2126.github.io/spotify_analysis/">こちら</a>から。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">'spotifyr'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># パッケージ読み込み</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(spotifyr, tidyverse, </span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>               corrplot) <span class="co"># 今回は相関行列表を出力したい</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># API取得</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_ID =</span> <span class="st">"xxxxxxxxxxxxxxxxxxxxx"</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_SECRET =</span> <span class="st">"xxxxxxxxxxxxxxxxxxxxx"</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>access_token <span class="ot">&lt;-</span> <span class="fu">get_spotify_access_token</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
-<p>大好き<code>tidyverse</code>、ほか使うパッケージを読み込んでおく。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(spotifyr, tidyverse, corrplot)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="callout callout-style-simple callout-tip">
-<div class="callout-body d-flex">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-body-container">
-<p>最近は<code>pacman</code>パッケージの<code>p_load()</code> をよく使っています。<code>install.packages()</code>と<code>library()</code>の合わせ技みたいな感じで、パッケージがインストールされていなかったらインストールを含め、読み込みまでやってくれる。</p>
-<p>R人生で一度だけ<code>pacman</code>をインストールしておけば、「このパッケージってインストールしてたかな」から解放されるし、パッケージ読み込みが1行で済むのは案外便利。</p>
-</div>
-</div>
-</div>
-</section>
-<section id="api情報を取得" class="level3">
-<h3 class="anchored" data-anchor-id="api情報を取得">API情報を取得</h3>
-<ol type="1">
-<li><p>Spotifyのアカウントで<a href="https://developer.spotify.com/">Spotify for Developers</a>にログインする</p></li>
-<li><p>DashboardからCreate appでappを作る（appってなんだ？）</p></li>
-<li><p>必要事項に入力してSave（Redirect URIsは何を入れたら分からなかったけど例に書いてあるURL入れたらOKだった。いいのか？）</p></li>
-<li><p>Dashboardからappを選択して、Settings &gt; Basic InformationからCliant IDとClient secret（隠されている）をコピーして、以下の通り実行</p></li>
-</ol>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="images/cliant.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="674"></p>
-</figure>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_ID =</span> <span class="st">'xxxxxxxxxxxxxxxxxxxxx'</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_SECRET =</span> <span class="st">'xxxxxxxxxxxxxxxxxxxxx'</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>access_token <span class="ot">&lt;-</span> <span class="fu">get_spotify_access_token</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<p>これでSpotifyの情報取り放題！わくわく！</p>
-</section>
 </section>
 <section id="星野源の楽曲情報を取りに行く" class="level2">
 <h2 class="anchored" data-anchor-id="星野源の楽曲情報を取りに行く">星野源の楽曲情報を取りに行く</h2>
 <p><code>get_artist_audio_features</code>関数を使って、アーティストの楽曲情報を取りに行く。引数にはアーティスト名もしくはアーティストIDを入れる。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> <span class="fu">get_artist_audio_features</span>(<span class="st">"Gen Hoshino"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> <span class="fu">get_artist_audio_features</span>(<span class="st">"Gen Hoshino"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 <div class="callout callout-style-simple callout-tip">
 <div class="callout-body d-flex">
@@ -183,7 +168,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>確認してみるとちゃんと星野源の情報が取れています。最新が上に表示されるのね。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>  artist_name              artist_id               album_id album_type
 1 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
@@ -287,7 +275,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>列多すぎるので列名だけ見てみる。いろんなことできそうで楽しい。<code>dancability</code>なんて星野源の分析したくなるでしょ。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code> [1] "artist_name"                  "artist_id"                   
  [3] "album_id"                     "album_type"                  
@@ -367,11 +358,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </dl>
 <p>なんとなくわかったので、使いそうな列だけ抽出する。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> gen <span class="sc">%&gt;%</span> </span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, </span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>         danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> gen <span class="sc">%&gt;%</span> </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, </span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>         danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>  album_name album_release_year  track_name danceability energy loudness
 1  POP VIRUS               2018   Pop Virus        0.629  0.441   -4.614
@@ -395,14 +389,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>今回は、星野源のアルバム5枚の変遷を耳で知っているけど、それって数値にどう表れているんだろう？を見てみたい。特に、<code>dancability</code>が気になる。</p>
 <p>とりあえずアルバム5枚全曲で指標の相関を見てみる。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> </span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">corrplot</span>(<span class="at">tl.col=</span><span class="st">"black"</span>,  <span class="at">addCoef.col =</span> <span class="st">"black"</span>, <span class="at">method =</span> <span class="st">"shade"</span>, <span class="at">shade.col =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">corrplot</span>(<span class="at">tl.col=</span><span class="st">"black"</span>,  <span class="at">addCoef.col =</span> <span class="st">"black"</span>, <span class="at">method =</span> <span class="st">"shade"</span>, <span class="at">shade.col =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="GenHoshino_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="gen_hoshino_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -413,12 +410,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="dancabilityを見てみる" class="level3">
 <h3 class="anchored" data-anchor-id="dancabilityを見てみる"><code>dancability</code>を見てみる</h3>
 <p><code>dancability</code>が高い順トップ10を見てみる。</p>
-<p><a href="https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d">桜の森</a>が堂々1位で嬉しくなりました。他には、<a href="https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a">Sonow Men</a>、<a href="https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384">Down Town</a>、<a href="https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8">湯気</a>あたり、納得の布陣。<a href="https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c">KIDS</a>や<a href="https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960">ストーブ</a>はちょっと意外。</p>
+<p><a href="https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d" target="_blank">桜の森</a>が堂々1位で嬉しくなりました。他には、<a href="https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a">Sonow Men</a>、<a href="https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384">Down Town</a>、<a href="https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8">湯気</a>あたり、納得の布陣。<a href="https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c">KIDS</a>や<a href="https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960">ストーブ</a>はちょっと意外。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>      album_name album_release_year                track_name danceability
 1  YELLOW DANCER               2015                    桜の森        0.870
@@ -435,10 +435,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>ちなみに下位10曲はこちら。個人的に<a href="https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9">肌</a>は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね、割と納得。</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tail</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tail</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-stdout">
 <pre><code>   album_name album_release_year                      track_name danceability
 60  POP VIRUS               2018                        アイデア        0.478
@@ -457,11 +460,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="つづく" class="level2">
 <h2 class="anchored" data-anchor-id="つづく">つづく</h2>
-</section>
-<section id="参考" class="level2">
-<h2 class="anchored" data-anchor-id="参考">参考</h2>
-<p><a href="https://www.rcharlie.com/spotifyr/">spotifyr</a></p>
-<p><a href="https://sunaninattahito.hatenablog.com/entry/2021/06/01/202317">【R】Spotify APIを利用して関連するアーティストをDigりまくる</a></p>
 </section>
 
 </main>
@@ -561,6 +559,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         if (link.dataset.originalHref !== undefined) {
           link.href = link.dataset.originalHref;
         }
+          // target, if specified
+          link.setAttribute("target", "_blank");
+          if (link.getAttribute("rel") === null) {
+            link.setAttribute("rel", "noopener");
+          }
       }
     }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {

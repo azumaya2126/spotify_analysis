@@ -1,68 +1,48 @@
 ---
-title: "Rで星野源のアルバム楽曲を分析してみる"
+title: "星野源のアルバム楽曲を分析してみる"
 author: "あずま"
-date: "2024-05-25"
-format: html
+date: "2024-05-29"
+format:
+  html:
+    toc: TRUE
+    toc_depth: 2
+    toc_float: TRUE
+    highlight: "tango"
+    code-fold: TRUE
+link-external-newwindow: TRUE
 ---
 
 ## やること
 
--   Spotifyの楽曲情報が取得できるみたいなので触ってみる
--   Pythonの分析は多いが（Pythonは苦手なので）Rでやってみよう
--   今回は星野源のアルバム楽曲を数値で可視化してみる
+RでSpotify分析やってみる第一弾、初回なので何ができるかを確かめつつ、星野源のアルバム楽曲を数値で可視化してみる。
 
-## Spotifyの情報を使えるようにする
 
-### パッケージインストール
+## 準備
 
-RでSpotifyの情報を取得するパッケージ[spotifyr](https://www.rcharlie.com/spotifyr/)がある。
-
-CRAN version 2.1.0であれば以下でインストールできるっぽい。
+ライブラリ読み込みとAPI取得について、以下のコードの説明は[こちら](https://azumaya2126.github.io/spotify_analysis/)から。
 
 ```{r eval = FALSE}
-install.packages('spotifyr')
-```
+# パッケージ読み込み
+pacman::p_load(spotifyr, tidyverse, 
+               corrplot) # 今回は相関行列表を出力したい
 
-大好き`tidyverse`、ほか使うパッケージを読み込んでおく。
-
-```{r}
-pacman::p_load(spotifyr, tidyverse, corrplot)
-```
-
-::: {.callout-tip appearance="simple"}
-最近は`pacman`パッケージの`p_load()` をよく使っています。`install.packages()`と`library()`の合わせ技みたいな感じで、パッケージがインストールされていなかったらインストールを含め、読み込みまでやってくれる。
-
-R人生で一度だけ`pacman`をインストールしておけば、「このパッケージってインストールしてたかな」から解放されるし、パッケージ読み込みが1行で済むのは案外便利。
-:::
-
-### API情報を取得
-
-1.  Spotifyのアカウントで[Spotify for Developers](https://developer.spotify.com/)にログインする
-
-2.  DashboardからCreate appでappを作る（appってなんだ？）
-
-3.  必要事項に入力してSave（Redirect URIsは何を入れたら分からなかったけど例に書いてあるURL入れたらOKだった。いいのか？）
-
-4.  Dashboardからappを選択して、Settings \> Basic InformationからCliant IDとClient secret（隠されている）をコピーして、以下の通り実行
-
-![](images/cliant.png){fig-align="center" width="674"}
-
-```{r eval = FALSE}
-Sys.setenv(SPOTIFY_CLIENT_ID = 'xxxxxxxxxxxxxxxxxxxxx')
-Sys.setenv(SPOTIFY_CLIENT_SECRET = 'xxxxxxxxxxxxxxxxxxxxx')
-
+# API取得
+Sys.setenv(SPOTIFY_CLIENT_ID = "xxxxxxxxxxxxxxxxxxxxx")
+Sys.setenv(SPOTIFY_CLIENT_SECRET = "xxxxxxxxxxxxxxxxxxxxx")
 access_token <- get_spotify_access_token()
 ```
 
 ```{r include = FALSE}
+pacman::p_load(spotifyr, tidyverse, corrplot)
 Sys.setenv(SPOTIFY_CLIENT_ID = "44af3e1025034575bf0766d197d738e6")
 Sys.setenv(SPOTIFY_CLIENT_SECRET = "d96455b022fe4e04876162dfab9c66b5")
 access_token <- get_spotify_access_token()
 ```
 
-これでSpotifyの情報取り放題！わくわく！
+
 
 ## 星野源の楽曲情報を取りに行く
+
 
 `get_artist_audio_features`関数を使って、アーティストの楽曲情報を取りに行く。引数にはアーティスト名もしくはアーティストIDを入れる。
 
@@ -173,7 +153,7 @@ gen %>%
 
 `dancability`が高い順トップ10を見てみる。
 
-[桜の森](https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d)が堂々1位で嬉しくなりました。他には、[Sonow Men](https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a)、[Down Town](https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384)、[湯気](https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8)あたり、納得の布陣。[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)や[ストーブ](https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960)はちょっと意外。
+[桜の森](https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d){target="_blank"}が堂々1位で嬉しくなりました。他には、[Sonow Men](https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a)、[Down Town](https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384)、[湯気](https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8)あたり、納得の布陣。[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)や[ストーブ](https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960)はちょっと意外。
 
 ```{r}
 gen %>% 
@@ -193,8 +173,5 @@ gen %>%
 
 ## つづく
 
-## 参考
 
-[spotifyr](https://www.rcharlie.com/spotifyr/)
 
-[【R】Spotify APIを利用して関連するアーティストをDigりまくる](https://sunaninattahito.hatenablog.com/entry/2021/06/01/202317)
