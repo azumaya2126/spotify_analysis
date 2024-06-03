@@ -7,19 +7,11 @@ access_token <- get_spotify_access_token()
 
 
 gen <- get_artist_audio_features("Gen Hoshino") 
-
 gen <- gen %>% 
   select(album_name, album_release_year, track_name, 
          danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)
 
 gen %>% 
-  select_if(is.numeric) %>% 
-  cor() %>% 
-  corrplot(tl.col="black",  addCoef.col = "black", method = "shade", shade.col = NA)
-
-
-gen %>% 
-  filter(album_name == "POP VIRUS") %>% 
   summary()
 
 gen %>% 
@@ -27,9 +19,18 @@ gen %>%
   summary()
 
 gen %>% 
-  arrange(desc(danceability)) %>% 
-  head()
+  arrange(desc(acousticness)) %>% 
+  head(15)
 
 gen %>% 
-  filter(album_name == "POP VIRUS") %>% 
-  arrange(desc(energy))
+  filter(acousticness < 0.1)
+
+gen %>% 
+  select(album, year) %>% 
+  unique() %>% 
+  arrange(year)
+
+gen %>% 
+  select_if(is.numeric) %>% # 数値型の列のみ選択
+  cor(use = "pairwise.complete.obs") %>%
+  corrplot(tl.col="black",  addCoef.col = "black", method = "square", shade.col = NA)

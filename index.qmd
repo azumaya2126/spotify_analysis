@@ -8,7 +8,7 @@ format:
     toc_depth: 2
     toc_float: TRUE
     highlight: "tango"
-link-external-newwindow: TRUE
+    link-external-newwindow: TRUE
 ---
 
 # やりたいこと
@@ -30,18 +30,20 @@ pacman::p_load(spotifyr)
 ```
 
 ::: {.callout-tip appearance="simple"}
-最近は`pacman`パッケージの`p_load()` をよく使っています。`install.packages()`と`library()`の合わせ技みたいな感じで、パッケージがインストールされていなかったらインストールを含め、読み込みまでやってくれる。
+最近は`pacman`パッケージの`p_load()`をよく使っています。`install.packages()`と`library()`の合わせ技で、パッケージがインストールされていなかったらインストールを含め、読み込みまでやってくれる。
 
 R人生で一度だけ`pacman`をインストールしておけば、「このパッケージってインストールしてたかな」から解放されるし、パッケージ読み込みが1行で済むのは案外便利。
+
+他にも続けてライブラリを読み込みたい時は、`pacman::p_load(spotifyr, tidyverse)`のようにカンマでつなげる。
 :::
 
 ### API情報を取得
 
 1.  Spotifyのアカウントで[Spotify for Developers](https://developer.spotify.com/)にログインする
 
-2.  DashboardからCreate appでappを作る（appってなんだ？）
+2.  DashboardからCreate appでappを作る
 
-3.  必要事項に入力してSave（Redirect URIsは何を入れたら分からなかったけど例に書いてあるURL入れたらOKだった。いいのか？）
+3.  必要事項に入力してSave（Redirect URLsは何を入れたら分からなかったけど例に書いてあるURL入れたらOKだった。いいのか？）
 
 4.  Dashboardからappを選択して、Settings \> Basic InformationからCliant IDとClient secret（隠されている）をコピーして、以下の通り実行
 
@@ -60,26 +62,28 @@ Sys.setenv(SPOTIFY_CLIENT_SECRET = "d96455b022fe4e04876162dfab9c66b5")
 access_token <- get_spotify_access_token()
 ```
 
-これでSpotifyの情報取り放題！わくわく！
+これでSpotifyの情報取り放題。
 
-## 分析したこと
+# 分析
 
-### 初めての分析
-[星野源のアルバム楽曲を分析してみる]()
+## 初めての分析
+[星野源のアルバム楽曲を分析してみる](https://azumaya2126.github.io/spotify_analysis/gen_hoshino.html)
 
-## これから分析したいネタ
+# これから
+
+今後、分析したいネタ
 
 -   星野源POP VIRUS以降
--   星野源とSAKEROCKって数値違うのかな
+-   星野源とSAKEROCK
 -   キリンジ時代の泰之曲と高樹曲
 -   荒井時代のユーミン
--   キリンジとオフコースって似た成分あると思う
--   sumikaと緑黄色社会って好きな成分同じだと思う
--   大貫妙子「色彩都市」の薬師丸ひろ子・原田知世・ユーミンキャラメルママのカバー違いはなに
+-   キリンジとオフコースって似た成分ある気がする
+-   sumikaと緑黄色社会って好きな成分近いと思う
+-   大貫妙子「色彩都市」カバー、薬師丸ひろ子・原田知世・ユーミンキャラメルママの違い
 -   似た系統の海外アーティストの曲は何か違うところあるのか
--   クラシックってあるのかな？ラヴェルとドビュッシー
+-   クラシックはどんな数値？ラヴェルとドビュッシー
 
-## 参考
+# 参考
 
 [spotifyr](https://www.rcharlie.com/spotifyr/)
 

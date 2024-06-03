@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="あずま">
-<meta name="dcterms.date" content="2024-05-29">
+<meta name="dcterms.date" content="2024-06-03">
 
 <title>星野源のアルバム楽曲を分析してみる</title>
 <style>
@@ -81,15 +81,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#やること" id="toc-やること" class="nav-link active" data-scroll-target="#やること">やること</a></li>
+  <li><a href="#はじめに" id="toc-はじめに" class="nav-link active" data-scroll-target="#はじめに">はじめに</a></li>
   <li><a href="#準備" id="toc-準備" class="nav-link" data-scroll-target="#準備">準備</a></li>
-  <li><a href="#星野源の楽曲情報を取りに行く" id="toc-星野源の楽曲情報を取りに行く" class="nav-link" data-scroll-target="#星野源の楽曲情報を取りに行く">星野源の楽曲情報を取りに行く</a></li>
-  <li><a href="#指標を確認" id="toc-指標を確認" class="nav-link" data-scroll-target="#指標を確認">指標を確認</a></li>
+  <li><a href="#楽曲情報取得" id="toc-楽曲情報取得" class="nav-link" data-scroll-target="#楽曲情報取得">楽曲情報取得</a></li>
+  <li><a href="#指標" id="toc-指標" class="nav-link" data-scroll-target="#指標">指標</a></li>
   <li><a href="#分析" id="toc-分析" class="nav-link" data-scroll-target="#分析">分析</a>
   <ul class="collapse">
-  <li><a href="#dancabilityを見てみる" id="toc-dancabilityを見てみる" class="nav-link" data-scroll-target="#dancabilityを見てみる"><code>dancability</code>を見てみる</a></li>
+  <li><a href="#相関" id="toc-相関" class="nav-link" data-scroll-target="#相関">相関</a></li>
+  <li><a href="#箱ひげ図" id="toc-箱ひげ図" class="nav-link" data-scroll-target="#箱ひげ図">箱ひげ図</a></li>
+  <li><a href="#danceabilityを見てみる" id="toc-danceabilityを見てみる" class="nav-link" data-scroll-target="#danceabilityを見てみる"><code>danceability</code>を見てみる</a></li>
+  <li><a href="#energyを見てみる" id="toc-energyを見てみる" class="nav-link" data-scroll-target="#energyを見てみる"><code>energy</code>を見てみる</a></li>
+  <li><a href="#valenceを見てみる" id="toc-valenceを見てみる" class="nav-link" data-scroll-target="#valenceを見てみる"><code>valence</code>を見てみる</a></li>
+  <li><a href="#acousticnessを見てみる" id="toc-acousticnessを見てみる" class="nav-link" data-scroll-target="#acousticnessを見てみる"><code>acousticness</code>を見てみる</a></li>
   </ul></li>
-  <li><a href="#つづく" id="toc-つづく" class="nav-link" data-scroll-target="#つづく">つづく</a></li>
+  <li><a href="#おわりに" id="toc-おわりに" class="nav-link" data-scroll-target="#おわりに">おわりに</a></li>
   </ul>
 </nav>
 </div>
@@ -114,7 +119,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 29, 2024</p>
+      <p class="date">June 3, 2024</p>
     </div>
   </div>
   
@@ -126,159 +131,123 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<section id="やること" class="level2">
-<h2 class="anchored" data-anchor-id="やること">やること</h2>
-<p>RでSpotify分析やってみる第一弾、初回なので何ができるかを確かめつつ、星野源のアルバム楽曲を数値で可視化してみる。</p>
+<section id="はじめに" class="level2">
+<h2 class="anchored" data-anchor-id="はじめに">はじめに</h2>
+<p>RでSpotify分析やってみる初回。 何ができるかを確かめつつ、星野源のアルバム楽曲の数値を可視化してみる。</p>
 </section>
 <section id="準備" class="level2">
 <h2 class="anchored" data-anchor-id="準備">準備</h2>
 <p>ライブラリ読み込みとAPI取得について、以下のコードの説明は<a href="https://azumaya2126.github.io/spotify_analysis/">こちら</a>から。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># パッケージ読み込み</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(spotifyr, tidyverse, </span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>               corrplot) <span class="co"># 今回は相関行列表を出力したい</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># API取得</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_ID =</span> <span class="st">"xxxxxxxxxxxxxxxxxxxxx"</span>)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_SECRET =</span> <span class="st">"xxxxxxxxxxxxxxxxxxxxx"</span>)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>access_token <span class="ot">&lt;-</span> <span class="fu">get_spotify_access_token</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>               corrplot, <span class="co"># 相関行列表を出力したい</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>               gt)    <span class="co"># 表を綺麗に出力したい</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># API取得</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_ID =</span> <span class="st">"xxxxxxxxxxxxxxxxxxxxx"</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">SPOTIFY_CLIENT_SECRET =</span> <span class="st">"xxxxxxxxxxxxxxxxxxxxx"</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>access_token <span class="ot">&lt;-</span> <span class="fu">get_spotify_access_token</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="星野源の楽曲情報を取りに行く" class="level2">
-<h2 class="anchored" data-anchor-id="星野源の楽曲情報を取りに行く">星野源の楽曲情報を取りに行く</h2>
+<section id="楽曲情報取得" class="level2">
+<h2 class="anchored" data-anchor-id="楽曲情報取得">楽曲情報取得</h2>
 <p><code>get_artist_audio_features</code>関数を使って、アーティストの楽曲情報を取りに行く。引数にはアーティスト名もしくはアーティストIDを入れる。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> <span class="fu">get_artist_audio_features</span>(<span class="st">"Gen Hoshino"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
 </div>
-<div class="callout callout-style-simple callout-tip">
-<div class="callout-body d-flex">
+<div class="callout callout-style-simple callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
-<div class="callout-body-container">
-<p>アーティストIDはSpotifyの<a href="https://open.spotify.com/intl-ja/artist/1S2S00lgLYLGHWA44qGEUs?si=wODSUxHNRj-_zgKo-dMrWQ">アーティストページ</a>の　artist/<u><strong>XXXXXX</strong></u>?si=　の部分</p>
+<div class="callout-title-container flex-fill">
+アーティストIDはどこ
 </div>
 </div>
+<div class="callout-body-container callout-body">
+<p>Spotifyの<a href="https://open.spotify.com/intl-ja/artist/1S2S00lgLYLGHWA44qGEUs?si=wODSUxHNRj-_zgKo-dMrWQ">アーティストページ</a>のURLのうち　artist/<u><strong>XXXXXX</strong></u>?si=　の部分をコピペ</p>
 </div>
-<p>確認してみるとちゃんと星野源の情報が取れています。最新が上に表示されるのね。</p>
+</div>
+<p>最初4行だけ確認してみるとちゃんと星野源の楽曲情報が取れています。最新が上に表示されるのね。EPやシングルは含まれていません。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>  artist_name              artist_id               album_id album_type
 1 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
 2 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
 3 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
 4 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-5 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
-6 Gen Hoshino 1S2S00lgLYLGHWA44qGEUs 2GP1RmB0LvvuXOwOmrtG86      album
                                                                                                                                                                                                                       album_images
 1 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
 2 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
 3 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
 4 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-5 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
-6 640, 300, 64, https://i.scdn.co/image/ab67616d0000b27307831685d7f988332899529a, https://i.scdn.co/image/ab67616d00001e0207831685d7f988332899529a, https://i.scdn.co/image/ab67616d0000485107831685d7f988332899529a, 640, 300, 64
   album_release_date album_release_year album_release_date_precision
 1         2018-12-19               2018                          day
 2         2018-12-19               2018                          day
 3         2018-12-19               2018                          day
 4         2018-12-19               2018                          day
-5         2018-12-19               2018                          day
-6         2018-12-19               2018                          day
   danceability energy key loudness mode speechiness acousticness
 1        0.629  0.441   9   -4.614    1      0.1260     0.033900
 2        0.598  0.819   9   -2.619    1      0.0911     0.000810
 3        0.592  0.842   6   -3.914    1      0.0612     0.000328
 4        0.450  0.769   9   -5.318    1      0.1860     0.004040
-5        0.807  0.519   2   -6.851    1      0.0518     0.034600
-6        0.654  0.848   5   -5.027    0      0.0714     0.012600
   instrumentalness liveness valence   tempo               track_id
 1         0.00e+00   0.2340   0.782  78.177 4hQ5tBCwPRkzhFB424U63U
 2         0.00e+00   0.2180   0.878 158.115 1flvuaMS27JxpEBL0u2cWc
 3         1.58e-06   0.1290   0.591  97.093 7cwzoU55oSCNP7m8dWDShQ
 4         7.07e-05   0.0762   0.811 122.108 0YEjAa5T0NQwvB7uz1dJvW
-5         3.71e-05   0.0692   0.462 141.996 1PQdRaB0zLMBpm9YiTaTVW
-6         1.63e-04   0.0875   0.718  85.989 3Hz1Rui4VVCnVl6QMpjCYE
                                                       analysis_url
 1 https://api.spotify.com/v1/audio-analysis/4hQ5tBCwPRkzhFB424U63U
 2 https://api.spotify.com/v1/audio-analysis/1flvuaMS27JxpEBL0u2cWc
 3 https://api.spotify.com/v1/audio-analysis/7cwzoU55oSCNP7m8dWDShQ
 4 https://api.spotify.com/v1/audio-analysis/0YEjAa5T0NQwvB7uz1dJvW
-5 https://api.spotify.com/v1/audio-analysis/1PQdRaB0zLMBpm9YiTaTVW
-6 https://api.spotify.com/v1/audio-analysis/3Hz1Rui4VVCnVl6QMpjCYE
   time_signature
 1              4
 2              4
 3              4
 4              4
-5              4
-6              4
                                                                                                                                                                                                 artists
 1 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
 2 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
 3 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
 4 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-5 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
-6 https://api.spotify.com/v1/artists/1S2S00lgLYLGHWA44qGEUs, 1S2S00lgLYLGHWA44qGEUs, Gen Hoshino, artist, spotify:artist:1S2S00lgLYLGHWA44qGEUs, https://open.spotify.com/artist/1S2S00lgLYLGHWA44qGEUs
   available_markets disc_number duration_ms explicit
 1                JP           1      182000    FALSE
 2                JP           1      251266    FALSE
 3                JP           1      187000    FALSE
 4                JP           1      239933    FALSE
-5                JP           1      206266    FALSE
-6                JP           1      221000    FALSE
-                                                track_href is_local  track_name
-1 https://api.spotify.com/v1/tracks/4hQ5tBCwPRkzhFB424U63U    FALSE   Pop Virus
-2 https://api.spotify.com/v1/tracks/1flvuaMS27JxpEBL0u2cWc    FALSE          恋
-3 https://api.spotify.com/v1/tracks/7cwzoU55oSCNP7m8dWDShQ    FALSE  Get a Feel
-4 https://api.spotify.com/v1/tracks/0YEjAa5T0NQwvB7uz1dJvW    FALSE          肌
-5 https://api.spotify.com/v1/tracks/1PQdRaB0zLMBpm9YiTaTVW    FALSE Pair Dancer
-6 https://api.spotify.com/v1/tracks/3Hz1Rui4VVCnVl6QMpjCYE    FALSE     Present
+                                                track_href is_local track_name
+1 https://api.spotify.com/v1/tracks/4hQ5tBCwPRkzhFB424U63U    FALSE  Pop Virus
+2 https://api.spotify.com/v1/tracks/1flvuaMS27JxpEBL0u2cWc    FALSE         恋
+3 https://api.spotify.com/v1/tracks/7cwzoU55oSCNP7m8dWDShQ    FALSE Get a Feel
+4 https://api.spotify.com/v1/tracks/0YEjAa5T0NQwvB7uz1dJvW    FALSE         肌
                                                                                             track_preview_url
 1 https://p.scdn.co/mp3-preview/aac3bbc9cc1adfbf483c6e8944db788e9e4452b2?cid=44af3e1025034575bf0766d197d738e6
 2 https://p.scdn.co/mp3-preview/8b681e4045fc31a9f7d6661e67988226cca7d839?cid=44af3e1025034575bf0766d197d738e6
 3 https://p.scdn.co/mp3-preview/69e726a36a79bf9416eccdb21b4c92b662f2b37b?cid=44af3e1025034575bf0766d197d738e6
 4 https://p.scdn.co/mp3-preview/96ce2d84c4b8ed943e73e8c8e3a24489cd796b8e?cid=44af3e1025034575bf0766d197d738e6
-5 https://p.scdn.co/mp3-preview/dd6da592a13cf625dd8610bd4417d280539a8137?cid=44af3e1025034575bf0766d197d738e6
-6 https://p.scdn.co/mp3-preview/495ceb774a53b4342dbde9460197c7439e82b0b3?cid=44af3e1025034575bf0766d197d738e6
   track_number  type                            track_uri
 1            1 track spotify:track:4hQ5tBCwPRkzhFB424U63U
 2            2 track spotify:track:1flvuaMS27JxpEBL0u2cWc
 3            3 track spotify:track:7cwzoU55oSCNP7m8dWDShQ
 4            4 track spotify:track:0YEjAa5T0NQwvB7uz1dJvW
-5            5 track spotify:track:1PQdRaB0zLMBpm9YiTaTVW
-6            6 track spotify:track:3Hz1Rui4VVCnVl6QMpjCYE
                                   external_urls.spotify album_name key_name
 1 https://open.spotify.com/track/4hQ5tBCwPRkzhFB424U63U  POP VIRUS        A
 2 https://open.spotify.com/track/1flvuaMS27JxpEBL0u2cWc  POP VIRUS        A
 3 https://open.spotify.com/track/7cwzoU55oSCNP7m8dWDShQ  POP VIRUS       F#
 4 https://open.spotify.com/track/0YEjAa5T0NQwvB7uz1dJvW  POP VIRUS        A
-5 https://open.spotify.com/track/1PQdRaB0zLMBpm9YiTaTVW  POP VIRUS        D
-6 https://open.spotify.com/track/3Hz1Rui4VVCnVl6QMpjCYE  POP VIRUS        F
   mode_name key_mode
 1     major  A major
 2     major  A major
 3     major F# major
-4     major  A major
-5     major  D major
-6     minor  F minor</code></pre>
+4     major  A major</code></pre>
 </div>
 </div>
-<p>列多すぎるので列名だけ見てみる。いろんなことできそうで楽しい。<code>dancability</code>なんて星野源の分析したくなるでしょ。</p>
+<p>列が多すぎるので列名だけ見てみる。いろんなことできそう。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
 <div class="cell-output cell-output-stdout">
 <pre><code> [1] "artist_name"                  "artist_id"                   
  [3] "album_id"                     "album_type"                  
@@ -303,11 +272,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </section>
-<section id="指標を確認" class="level2">
-<h2 class="anchored" data-anchor-id="指標を確認">指標を確認</h2>
-<p>分からなさそうな指標をChat GPTに聞いてみた。間違っているかもしれない。</p>
+<section id="指標" class="level2">
+<h2 class="anchored" data-anchor-id="指標">指標</h2>
+<p>分からなさそうな指標をChat GPTに聞いてみた。（間違っているかもしれない。）</p>
 <dl>
-<dt><code>dancability</code></dt>
+<dt><code>danceability</code></dt>
 <dd>
 <p>楽曲がどれだけ踊りやすいかを示します。0.0から1.0までの範囲で、1.0に近いほどダンサブルです。</p>
 </dd>
@@ -356,110 +325,5964 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>楽曲の長さをミリ秒で表します。</p>
 </dd>
 </dl>
-<p>なんとなくわかったので、使いそうな列だけ抽出する。</p>
+<p>使いそうな列だけ抽出する。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>gen <span class="ot">&lt;-</span> gen <span class="sc">%&gt;%</span> </span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, </span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>         danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>         danceability, energy, loudness, speechiness, acousticness, instrumentalness, liveness, valence,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>         tempo, duration_ms) <span class="sc">%&gt;%</span> </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">album =</span> album_name, </span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">year =</span> album_release_year,</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">track =</span> track_name) <span class="co"># 長いので略します</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(gen, <span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  album_name album_release_year  track_name danceability energy loudness
-1  POP VIRUS               2018   Pop Virus        0.629  0.441   -4.614
-2  POP VIRUS               2018          恋        0.598  0.819   -2.619
-3  POP VIRUS               2018  Get a Feel        0.592  0.842   -3.914
-4  POP VIRUS               2018          肌        0.450  0.769   -5.318
-5  POP VIRUS               2018 Pair Dancer        0.807  0.519   -6.851
-6  POP VIRUS               2018     Present        0.654  0.848   -5.027
-  speechiness acousticness valence   tempo duration_ms
-1      0.1260     0.033900   0.782  78.177      182000
-2      0.0911     0.000810   0.878 158.115      251266
-3      0.0612     0.000328   0.591  97.093      187000
-4      0.1860     0.004040   0.811 122.108      239933
-5      0.0518     0.034600   0.462 141.996      206266
-6      0.0714     0.012600   0.718  85.989      221000</code></pre>
+<pre><code>      album year      track danceability energy loudness speechiness
+1 POP VIRUS 2018  Pop Virus        0.629  0.441   -4.614      0.1260
+2 POP VIRUS 2018         恋        0.598  0.819   -2.619      0.0911
+3 POP VIRUS 2018 Get a Feel        0.592  0.842   -3.914      0.0612
+4 POP VIRUS 2018         肌        0.450  0.769   -5.318      0.1860
+  acousticness instrumentalness liveness valence   tempo duration_ms
+1     0.033900         0.00e+00   0.2340   0.782  78.177      182000
+2     0.000810         0.00e+00   0.2180   0.878 158.115      251266
+3     0.000328         1.58e-06   0.1290   0.591  97.093      187000
+4     0.004040         7.07e-05   0.0762   0.811 122.108      239933</code></pre>
 </div>
 </div>
 </section>
 <section id="分析" class="level2">
 <h2 class="anchored" data-anchor-id="分析">分析</h2>
-<p>今回は、星野源のアルバム5枚の変遷を耳で知っているけど、それって数値にどう表れているんだろう？を見てみたい。特に、<code>dancability</code>が気になる。</p>
+<p>今回は「星野源のアルバム5枚の変遷を耳で知っているけど、それって数値にどう表れているんだろう？」を見てみたい。</p>
+<p>星野源のこれまでのアルバム名と発売年</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album, year) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unique</span>() <span class="sc">%&gt;%</span> <span class="co"># 一意の値を抽出</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(year) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="co"># 綺麗な表にする</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="kewhalqfmk" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#kewhalqfmk table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#kewhalqfmk thead, #kewhalqfmk tbody, #kewhalqfmk tfoot, #kewhalqfmk tr, #kewhalqfmk td, #kewhalqfmk th {
+  border-style: none;
+}
+
+#kewhalqfmk p {
+  margin: 0;
+  padding: 0;
+}
+
+#kewhalqfmk .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#kewhalqfmk .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#kewhalqfmk .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#kewhalqfmk .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#kewhalqfmk .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#kewhalqfmk .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#kewhalqfmk .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#kewhalqfmk .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#kewhalqfmk .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#kewhalqfmk .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#kewhalqfmk .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#kewhalqfmk .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#kewhalqfmk .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#kewhalqfmk .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#kewhalqfmk .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#kewhalqfmk .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#kewhalqfmk .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#kewhalqfmk .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#kewhalqfmk .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#kewhalqfmk .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#kewhalqfmk .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#kewhalqfmk .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#kewhalqfmk .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#kewhalqfmk .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#kewhalqfmk .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#kewhalqfmk .gt_left {
+  text-align: left;
+}
+
+#kewhalqfmk .gt_center {
+  text-align: center;
+}
+
+#kewhalqfmk .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#kewhalqfmk .gt_font_normal {
+  font-weight: normal;
+}
+
+#kewhalqfmk .gt_font_bold {
+  font-weight: bold;
+}
+
+#kewhalqfmk .gt_font_italic {
+  font-style: italic;
+}
+
+#kewhalqfmk .gt_super {
+  font-size: 65%;
+}
+
+#kewhalqfmk .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#kewhalqfmk .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#kewhalqfmk .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#kewhalqfmk .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#kewhalqfmk .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#kewhalqfmk .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#kewhalqfmk .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<section id="相関" class="level3">
+<h3 class="anchored" data-anchor-id="相関">相関</h3>
 <p>とりあえずアルバム5枚全曲で指標の相関を見てみる。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> </span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>() <span class="sc">%&gt;%</span> </span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">corrplot</span>(<span class="at">tl.col=</span><span class="st">"black"</span>,  <span class="at">addCoef.col =</span> <span class="st">"black"</span>, <span class="at">method =</span> <span class="st">"shade"</span>, <span class="at">shade.col =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select_if</span>(is.numeric) <span class="sc">%&gt;%</span> <span class="co"># 数値型の列のみ選択</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>(<span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">corrplot</span>(<span class="at">tl.col=</span><span class="st">"black"</span>,  <span class="at">addCoef.col =</span> <span class="st">"black"</span>, <span class="at">method =</span> <span class="st">"square"</span>, <span class="at">shade.col =</span> <span class="cn">NA</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="gen_hoshino_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="gen_hoshino_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p><code>dancability</code>と<code>energy</code> って相関ないんだ。</p>
-<p>しかも<code>dancability</code>と<code>tempo</code>って負の相関なんだ！？<code>tempo</code>って<code>dancability</code>以外とほとんど相関がないから、他のエネルギッシュとかポジティブさはテンポの要素を抜いた指標になっているのかしら。</p>
-<p>ほかには、<code>album_release_year</code>と<code>loudness</code>は正の相関、<code>album_release_year</code>と<code>acousticness</code>は負の相関なので、昔の曲の方が静かでアコースティックな体感と合ってますね。<code>album_release_year</code> と<code>duration_ms</code>を見ると正の相関なので、最近の曲は短いって世間の流れに乗っていない。これもラジオで聴く話と近い気が。</p>
-<section id="dancabilityを見てみる" class="level3">
-<h3 class="anchored" data-anchor-id="dancabilityを見てみる"><code>dancability</code>を見てみる</h3>
-<p><code>dancability</code>が高い順トップ10を見てみる。</p>
-<p><a href="https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d" target="_blank">桜の森</a>が堂々1位で嬉しくなりました。他には、<a href="https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a">Sonow Men</a>、<a href="https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384">Down Town</a>、<a href="https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8">湯気</a>あたり、納得の布陣。<a href="https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c">KIDS</a>や<a href="https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960">ストーブ</a>はちょっと意外。</p>
+<p>(見づらい。列数が多くても簡単に綺麗に見やすく相関行列表が出力される方法を模索中)</p>
+<p>ざっくり感想</p>
+<ul>
+<li><p><code>danceability</code>と<code>energy</code> って相関強くないんだ</p></li>
+<li><p>しかも、<code>danceability</code>と<code>tempo</code>って負の相関なんだ！？そういやダンスミュージックだからといってテンポが速いわけではないな</p></li>
+<li><p><code>tempo</code>は、<code>danceability</code>以外とほとんど相関がないから、他のエネルギッシュとかポジティブさはテンポの要素を抜いた指標になっている？</p></li>
+<li><p><code>year</code>と<code>loudness</code>は正の相関、<code>year</code>と<code>acousticness</code>は負の相関なので、昔の曲の方が静かでアコースティックな体感と合ってますね。</p></li>
+<li><p><code>year</code> と<code>duration_ms</code>を見ると正の相関なので、最近の曲は短いって時流とは違う方向。</p></li>
+</ul>
+</section>
+<section id="箱ひげ図" class="level3">
+<h3 class="anchored" data-anchor-id="箱ひげ図">箱ひげ図</h3>
+<p>0 ~ 1の範囲を取る7指標の分布を見てみる。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code>      album_name album_release_year                track_name danceability
-1  YELLOW DANCER               2015                    桜の森        0.870
-2  YELLOW DANCER               2015                  Snow Men        0.843
-3      POP VIRUS               2018                      KIDS        0.842
-4  YELLOW DANCER               2015 Nerd Strut (Instrumental)        0.834
-5  YELLOW DANCER               2015                 Down Town        0.829
-6     エピソード               2011                      湯気        0.816
-7      POP VIRUS               2018               Pair Dancer        0.807
-8     エピソード               2011                  ストーブ        0.797
-9  YELLOW DANCER               2015                       SUN        0.782
-10     POP VIRUS               2018                サピエンス        0.781</code></pre>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(danceability, energy, speechiness, acousticness, instrumentalness, liveness, valence), <span class="co"># 指標を1つの列に</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_to =</span> <span class="st">"measurement"</span>) <span class="sc">%&gt;%</span> <span class="co"># 列名を変える</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> measurement, <span class="at">y =</span> value, <span class="at">colour =</span> measurement)) <span class="sc">+</span> </span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>() <span class="sc">+</span> </span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="gen_hoshino_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
 </div>
 </div>
-<p>ちなみに下位10曲はこちら。個人的に<a href="https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9">肌</a>は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね、割と納得。</p>
+</div>
+<ul>
+<li><p><code>acousticness</code>は、ほぼ0からほぼ1まで分布が広い。初期アルバムのギター1本弾き語りに近い曲から、最新アルバムのばちばちダンスミュージックまであるのでこれが反映されていそう。</p></li>
+<li><p>一方、<code>danceability</code>は案外幅が狭くて、弾き語り曲でも0.3くらいは持っているっぽい。</p></li>
+<li><p><code>energy</code>と<code>valence</code>は幅広い分布が似ている。エネルギッシュと陽気の違いはなんだ。</p></li>
+<li><p><code>instrumentalness</code>で大きく外れている3曲は、インスト曲たち。それはそう。（<a href="https://open.spotify.com/intl-ja/track/11GmLHGV7jjERqaOforxzW?si=6233489c44b24802">デイジーお味噌汁</a>、<a href="https://open.spotify.com/intl-ja/track/4GldX1uRkauyCaSKr0L6hk?si=3920b94ef05e43cd">さようならのうみ</a>、<a href="https://open.spotify.com/intl-ja/track/4N9LKH39qdHk7TQTXEroLG?si=bb59b00ed3c64059">Nerd Strut</a>）</p></li>
+<li><p><code>liveness</code>では2曲（<a href="https://open.spotify.com/intl-ja/track/5IOKl1EeyOw7Bjp9E84tdw?si=ce33f467cda04bfe">化物</a>、アルバム隠しトラックの<a href="https://open.spotify.com/intl-ja/track/0Kuss0r5HEuHMkL67BfhfO?si=b0f670ccb6d846ab">Stranger</a>）が大きく外れている。あまりピンとこない。</p></li>
+<li><p>話し言葉の程度を表す<code>speechiness</code>は、上位はが<a href="https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c">KIDS</a>、<a href="https://open.spotify.com/intl-ja/track/7jgqNMnqAT9FghC1uSYTFF?si=6f9711e0ce6245f9">アイデア</a>、<a href="https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9">肌</a>、<a href="https://open.spotify.com/intl-ja/track/11UD9IOlsEbK4fUURUziTj?si=c272198ec6f34099">Soul</a>。分かるような分からないような。</p></li>
+</ul>
+</section>
+<section id="danceabilityを見てみる" class="level3">
+<h3 class="anchored" data-anchor-id="danceabilityを見てみる"><code>danceability</code>を見てみる</h3>
+<p><code>danceability</code>が高い順トップ10を見てみる。</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album_name, album_release_year, track_name, danceability) <span class="sc">%&gt;%</span> </span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tail</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code>   album_name album_release_year                      track_name danceability
-60  POP VIRUS               2018                        アイデア        0.478
-61   Stranger               2013                  レコードノイズ        0.472
-62  POP VIRUS               2018                              肌        0.450
-63 エピソード               2011                      エピソード        0.444
-64 ばかのうた               2010 さようならのうみ (Instrumental)        0.444
-65 ばかのうた               2010                        ただいま        0.443
-66   Stranger               2013                    ワークソング        0.413
-67   Stranger               2013                            季節        0.396
-68 ばかのうた               2010                      ばかのうた        0.366
-69 ばかのうた               2010                          老夫婦        0.352</code></pre>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(danceability)) <span class="sc">%&gt;%</span> <span class="co"># desc(降順)で並べる</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album, year, track, danceability) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="nbzwpglqgj" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#nbzwpglqgj table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#nbzwpglqgj thead, #nbzwpglqgj tbody, #nbzwpglqgj tfoot, #nbzwpglqgj tr, #nbzwpglqgj td, #nbzwpglqgj th {
+  border-style: none;
+}
+
+#nbzwpglqgj p {
+  margin: 0;
+  padding: 0;
+}
+
+#nbzwpglqgj .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#nbzwpglqgj .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#nbzwpglqgj .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#nbzwpglqgj .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#nbzwpglqgj .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#nbzwpglqgj .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#nbzwpglqgj .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#nbzwpglqgj .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#nbzwpglqgj .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#nbzwpglqgj .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#nbzwpglqgj .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#nbzwpglqgj .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#nbzwpglqgj .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#nbzwpglqgj .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#nbzwpglqgj .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbzwpglqgj .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#nbzwpglqgj .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#nbzwpglqgj .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#nbzwpglqgj .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbzwpglqgj .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#nbzwpglqgj .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbzwpglqgj .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#nbzwpglqgj .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbzwpglqgj .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#nbzwpglqgj .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbzwpglqgj .gt_left {
+  text-align: left;
+}
+
+#nbzwpglqgj .gt_center {
+  text-align: center;
+}
+
+#nbzwpglqgj .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#nbzwpglqgj .gt_font_normal {
+  font-weight: normal;
+}
+
+#nbzwpglqgj .gt_font_bold {
+  font-weight: bold;
+}
+
+#nbzwpglqgj .gt_font_italic {
+  font-style: italic;
+}
+
+#nbzwpglqgj .gt_super {
+  font-size: 65%;
+}
+
+#nbzwpglqgj .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#nbzwpglqgj .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#nbzwpglqgj .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#nbzwpglqgj .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#nbzwpglqgj .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#nbzwpglqgj .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#nbzwpglqgj .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="danceability" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">danceability</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">桜の森</td>
+<td class="gt_row gt_right" headers="danceability">0.870</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Snow Men</td>
+<td class="gt_row gt_right" headers="danceability">0.843</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">KIDS</td>
+<td class="gt_row gt_right" headers="danceability">0.842</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Nerd Strut (Instrumental)</td>
+<td class="gt_row gt_right" headers="danceability">0.834</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Down Town</td>
+<td class="gt_row gt_right" headers="danceability">0.829</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">湯気</td>
+<td class="gt_row gt_right" headers="danceability">0.816</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Pair Dancer</td>
+<td class="gt_row gt_right" headers="danceability">0.807</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">ストーブ</td>
+<td class="gt_row gt_right" headers="danceability">0.797</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">SUN</td>
+<td class="gt_row gt_right" headers="danceability">0.782</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">サピエンス</td>
+<td class="gt_row gt_right" headers="danceability">0.781</td>
+</tr>
+</tbody>
+</table>
+
 </div>
 </div>
+</div>
+</div>
+<p><a href="https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d">桜の森</a>が堂々1位で嬉しくなりました。他には、<a href="https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a">Sonow Men</a>、<a href="https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384">Down Town</a>、<a href="https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8">湯気</a>あたり、納得の布陣。<a href="https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c">KIDS</a>や<a href="https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960">ストーブ</a>はちょっと意外。</p>
+<p>コードのコピペも面倒なので、引数に指標名を入れたら上位/下位10曲を表で出力する関数を作ってみます。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 上位10曲</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>top10 <span class="ot">&lt;-</span> <span class="cf">function</span>(measurement){</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  gen <span class="sc">%&gt;%</span> </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="sc">!!</span><span class="fu">sym</span>(measurement))) <span class="sc">%&gt;%</span> <span class="co">#降順</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(album, year, track, <span class="sc">!!</span><span class="fu">sym</span>(measurement)) <span class="sc">%&gt;%</span> <span class="co"># アルバム名、年、曲名と指定した指標を残す</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">head</span>(<span class="dv">10</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gt</span>()</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 下位10曲</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>bottom10 <span class="ot">&lt;-</span> <span class="cf">function</span>(measurement){</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  gen <span class="sc">%&gt;%</span> </span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(<span class="sc">!!</span><span class="fu">sym</span>(measurement)) <span class="sc">%&gt;%</span> <span class="co"># 昇順</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">select</span>(album, year, track, <span class="sc">!!</span><span class="fu">sym</span>(measurement)) <span class="sc">%&gt;%</span> </span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">head</span>(<span class="dv">10</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">gt</span>()</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-simple callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<code>!!sym()</code>ってなんだ
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>今回の関数では、引数に指定した文字列を変数名として使いたくて<code>!!sym()</code>というおまじないをつけました。通常、R上で<code>"</code>で囲まれたものは文字列として認識されますが、どうやら<a href="https://github.com/rstudio/cheatsheets/blob/main/tidyeval.pdf">rlang</a>によって、クオーテーション<code>"</code>があるなしと変数の行き来ができるみたいです。</p>
+<p>かなり複雑で、あまり分かっていません。勉強したい。</p>
+</div>
+</div>
+<p>ということで下位10曲はこちら。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bottom10</span>(<span class="st">"danceability"</span>) <span class="co"># 関数の引数指定は"文字列"で</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="vuyfrehcqe" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#vuyfrehcqe table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#vuyfrehcqe thead, #vuyfrehcqe tbody, #vuyfrehcqe tfoot, #vuyfrehcqe tr, #vuyfrehcqe td, #vuyfrehcqe th {
+  border-style: none;
+}
+
+#vuyfrehcqe p {
+  margin: 0;
+  padding: 0;
+}
+
+#vuyfrehcqe .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#vuyfrehcqe .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#vuyfrehcqe .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#vuyfrehcqe .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#vuyfrehcqe .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#vuyfrehcqe .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#vuyfrehcqe .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#vuyfrehcqe .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#vuyfrehcqe .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#vuyfrehcqe .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#vuyfrehcqe .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#vuyfrehcqe .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#vuyfrehcqe .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#vuyfrehcqe .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#vuyfrehcqe .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vuyfrehcqe .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#vuyfrehcqe .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#vuyfrehcqe .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#vuyfrehcqe .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vuyfrehcqe .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#vuyfrehcqe .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vuyfrehcqe .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#vuyfrehcqe .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vuyfrehcqe .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#vuyfrehcqe .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vuyfrehcqe .gt_left {
+  text-align: left;
+}
+
+#vuyfrehcqe .gt_center {
+  text-align: center;
+}
+
+#vuyfrehcqe .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#vuyfrehcqe .gt_font_normal {
+  font-weight: normal;
+}
+
+#vuyfrehcqe .gt_font_bold {
+  font-weight: bold;
+}
+
+#vuyfrehcqe .gt_font_italic {
+  font-style: italic;
+}
+
+#vuyfrehcqe .gt_super {
+  font-size: 65%;
+}
+
+#vuyfrehcqe .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#vuyfrehcqe .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#vuyfrehcqe .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#vuyfrehcqe .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#vuyfrehcqe .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#vuyfrehcqe .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#vuyfrehcqe .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="danceability" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">danceability</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">老夫婦</td>
+<td class="gt_row gt_right" headers="danceability">0.352</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ばかのうた</td>
+<td class="gt_row gt_right" headers="danceability">0.366</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">季節</td>
+<td class="gt_row gt_right" headers="danceability">0.396</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">ワークソング</td>
+<td class="gt_row gt_right" headers="danceability">0.413</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ただいま</td>
+<td class="gt_row gt_right" headers="danceability">0.443</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">エピソード</td>
+<td class="gt_row gt_right" headers="danceability">0.444</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">さようならのうみ (Instrumental)</td>
+<td class="gt_row gt_right" headers="danceability">0.444</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">肌</td>
+<td class="gt_row gt_right" headers="danceability">0.450</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">レコードノイズ</td>
+<td class="gt_row gt_right" headers="danceability">0.472</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">アイデア</td>
+<td class="gt_row gt_right" headers="danceability">0.478</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>個人的に<a href="https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9">肌</a>は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね、割と納得。</p>
+</section>
+<section id="energyを見てみる" class="level3">
+<h3 class="anchored" data-anchor-id="energyを見てみる"><code>energy</code>を見てみる</h3>
+<p>上位10曲はこちら。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">top10</span>(<span class="st">"energy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="xpjohgjico" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#xpjohgjico table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#xpjohgjico thead, #xpjohgjico tbody, #xpjohgjico tfoot, #xpjohgjico tr, #xpjohgjico td, #xpjohgjico th {
+  border-style: none;
+}
+
+#xpjohgjico p {
+  margin: 0;
+  padding: 0;
+}
+
+#xpjohgjico .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#xpjohgjico .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#xpjohgjico .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#xpjohgjico .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#xpjohgjico .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#xpjohgjico .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#xpjohgjico .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#xpjohgjico .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#xpjohgjico .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#xpjohgjico .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#xpjohgjico .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#xpjohgjico .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#xpjohgjico .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#xpjohgjico .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#xpjohgjico .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#xpjohgjico .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#xpjohgjico .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#xpjohgjico .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#xpjohgjico .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#xpjohgjico .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#xpjohgjico .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#xpjohgjico .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#xpjohgjico .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#xpjohgjico .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#xpjohgjico .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#xpjohgjico .gt_left {
+  text-align: left;
+}
+
+#xpjohgjico .gt_center {
+  text-align: center;
+}
+
+#xpjohgjico .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#xpjohgjico .gt_font_normal {
+  font-weight: normal;
+}
+
+#xpjohgjico .gt_font_bold {
+  font-weight: bold;
+}
+
+#xpjohgjico .gt_font_italic {
+  font-style: italic;
+}
+
+#xpjohgjico .gt_super {
+  font-size: 65%;
+}
+
+#xpjohgjico .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#xpjohgjico .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#xpjohgjico .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#xpjohgjico .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#xpjohgjico .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#xpjohgjico .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#xpjohgjico .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="energy" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">energy</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Crazy Crazy</td>
+<td class="gt_row gt_right" headers="energy">0.930</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">地獄でなぜ悪い</td>
+<td class="gt_row gt_right" headers="energy">0.894</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Hello Song</td>
+<td class="gt_row gt_right" headers="energy">0.887</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Continues</td>
+<td class="gt_row gt_right" headers="energy">0.884</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">化物</td>
+<td class="gt_row gt_right" headers="energy">0.858</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Present</td>
+<td class="gt_row gt_right" headers="energy">0.848</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">夢の外へ</td>
+<td class="gt_row gt_right" headers="energy">0.848</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Get a Feel</td>
+<td class="gt_row gt_right" headers="energy">0.842</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">恋</td>
+<td class="gt_row gt_right" headers="energy">0.819</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Family Song</td>
+<td class="gt_row gt_right" headers="energy">0.776</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>とても納得。テンポ速そうなイメージの曲が多いけど、<a href="https://open.spotify.com/intl-ja/track/2RjN72vwuliC8FX4CcgylQ?si=91e94523f9644129">Continues</a>など、案外速すぎずしっかり踏みしめる曲って感じ。そういや<a href="https://open.spotify.com/intl-ja/track/1flvuaMS27JxpEBL0u2cWc?si=32de99c4bacc4013">恋</a>も特別速くはない。 <a href="https://open.spotify.com/intl-ja/track/3Hz1Rui4VVCnVl6QMpjCYE?si=8421f36f7c224ff1">Present</a>は少し意外だけど、ホーン隊もコーラスもがっつりでR&amp;Bっぽい感じがエネルギッシュなのかしら。</p>
+<p>下位10曲はこちら。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bottom10</span>(<span class="st">"energy"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="ciszwjyleh" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#ciszwjyleh table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#ciszwjyleh thead, #ciszwjyleh tbody, #ciszwjyleh tfoot, #ciszwjyleh tr, #ciszwjyleh td, #ciszwjyleh th {
+  border-style: none;
+}
+
+#ciszwjyleh p {
+  margin: 0;
+  padding: 0;
+}
+
+#ciszwjyleh .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#ciszwjyleh .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#ciszwjyleh .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#ciszwjyleh .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#ciszwjyleh .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#ciszwjyleh .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#ciszwjyleh .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#ciszwjyleh .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#ciszwjyleh .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#ciszwjyleh .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#ciszwjyleh .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#ciszwjyleh .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#ciszwjyleh .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#ciszwjyleh .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#ciszwjyleh .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ciszwjyleh .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#ciszwjyleh .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#ciszwjyleh .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#ciszwjyleh .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ciszwjyleh .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#ciszwjyleh .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ciszwjyleh .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#ciszwjyleh .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ciszwjyleh .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#ciszwjyleh .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#ciszwjyleh .gt_left {
+  text-align: left;
+}
+
+#ciszwjyleh .gt_center {
+  text-align: center;
+}
+
+#ciszwjyleh .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#ciszwjyleh .gt_font_normal {
+  font-weight: normal;
+}
+
+#ciszwjyleh .gt_font_bold {
+  font-weight: bold;
+}
+
+#ciszwjyleh .gt_font_italic {
+  font-style: italic;
+}
+
+#ciszwjyleh .gt_super {
+  font-size: 65%;
+}
+
+#ciszwjyleh .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#ciszwjyleh .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#ciszwjyleh .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#ciszwjyleh .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#ciszwjyleh .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#ciszwjyleh .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#ciszwjyleh .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="energy" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">energy</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">バイト</td>
+<td class="gt_row gt_right" headers="energy">0.0145</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">口づけ</td>
+<td class="gt_row gt_right" headers="energy">0.0200</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">さようならのうみ (Instrumental)</td>
+<td class="gt_row gt_right" headers="energy">0.0435</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">Stranger</td>
+<td class="gt_row gt_right" headers="energy">0.0668</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">エピソード</td>
+<td class="gt_row gt_right" headers="energy">0.0680</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">夜</td>
+<td class="gt_row gt_right" headers="energy">0.0797</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">スカート</td>
+<td class="gt_row gt_right" headers="energy">0.1200</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">ストーブ</td>
+<td class="gt_row gt_right" headers="energy">0.2060</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">布団</td>
+<td class="gt_row gt_right" headers="energy">0.2180</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ばらばら</td>
+<td class="gt_row gt_right" headers="energy">0.2490</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>箱ひげ図でも分布の幅が広いなと思っていたけど、1位の<a href="https://open.spotify.com/intl-ja/track/57T1nEAUura1AX0JgJDVDu?si=afcae2463d614aa2">Crazy Crazy</a>が0.93のところ、下位6曲は0.1を切っている。</p>
+<p>こちらも納得の布陣。初期曲や、ポップなアルバムの中の休み曲（<a href="https://open.spotify.com/intl-ja/track/1TEBnwVFbv99nGdeqc5wsr?si=476f704fc5434345">口づけ</a>、<a href="https://open.spotify.com/intl-ja/track/2Ln7KVpxs0DetedsRx2pNj?si=5838a711e70f45b8">夜</a>）という感じ。個人的には<a href="https://open.spotify.com/album/3Fj07HA1r20hRdF9eepuax?si=niKL_WFgRkym-fz51z-JRA">YELLOW DANCER</a>のアルバム曲順のバランス、とてもお気に入り。高校受験期に擦り切れるほど聴いた。</p>
+</section>
+<section id="valenceを見てみる" class="level3">
+<h3 class="anchored" data-anchor-id="valenceを見てみる"><code>valence</code>を見てみる</h3>
+<p><code>energy</code>と近いんじゃないかと予想している。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">top10</span>(<span class="st">"valence"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="dwqynoxngz" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#dwqynoxngz table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#dwqynoxngz thead, #dwqynoxngz tbody, #dwqynoxngz tfoot, #dwqynoxngz tr, #dwqynoxngz td, #dwqynoxngz th {
+  border-style: none;
+}
+
+#dwqynoxngz p {
+  margin: 0;
+  padding: 0;
+}
+
+#dwqynoxngz .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#dwqynoxngz .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#dwqynoxngz .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#dwqynoxngz .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#dwqynoxngz .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#dwqynoxngz .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#dwqynoxngz .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#dwqynoxngz .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#dwqynoxngz .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#dwqynoxngz .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#dwqynoxngz .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#dwqynoxngz .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#dwqynoxngz .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#dwqynoxngz .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#dwqynoxngz .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#dwqynoxngz .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#dwqynoxngz .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#dwqynoxngz .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#dwqynoxngz .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#dwqynoxngz .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#dwqynoxngz .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#dwqynoxngz .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#dwqynoxngz .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#dwqynoxngz .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#dwqynoxngz .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#dwqynoxngz .gt_left {
+  text-align: left;
+}
+
+#dwqynoxngz .gt_center {
+  text-align: center;
+}
+
+#dwqynoxngz .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#dwqynoxngz .gt_font_normal {
+  font-weight: normal;
+}
+
+#dwqynoxngz .gt_font_bold {
+  font-weight: bold;
+}
+
+#dwqynoxngz .gt_font_italic {
+  font-style: italic;
+}
+
+#dwqynoxngz .gt_super {
+  font-size: 65%;
+}
+
+#dwqynoxngz .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#dwqynoxngz .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#dwqynoxngz .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#dwqynoxngz .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#dwqynoxngz .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#dwqynoxngz .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#dwqynoxngz .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="valence" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">valence</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">桜の森</td>
+<td class="gt_row gt_right" headers="valence">0.926</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">夢の外へ</td>
+<td class="gt_row gt_right" headers="valence">0.908</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Soul</td>
+<td class="gt_row gt_right" headers="valence">0.902</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">化物</td>
+<td class="gt_row gt_right" headers="valence">0.899</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">地獄でなぜ悪い</td>
+<td class="gt_row gt_right" headers="valence">0.892</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Hello Song</td>
+<td class="gt_row gt_right" headers="valence">0.889</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">恋</td>
+<td class="gt_row gt_right" headers="valence">0.878</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">穴を掘る</td>
+<td class="gt_row gt_right" headers="valence">0.874</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">兄妹</td>
+<td class="gt_row gt_right" headers="valence">0.866</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">SUN</td>
+<td class="gt_row gt_right" headers="valence">0.858</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>たしかに上位5/10曲が被っている。1stアルバムの<a href="https://open.spotify.com/intl-ja/track/5jgmSmIUIMjuaoDbER4Wgs?si=102b46ed86a84627">穴を掘る</a>と<a href="https://open.spotify.com/intl-ja/track/1yOqNi0aXqiZJw6eBGWqW1?si=c873c0651c31426b">兄妹</a>は意外。ただ、曲を改めて聴いてみると陽の気は感じる。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bottom10</span>(<span class="st">"valence"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="vgvyfkqfuj" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#vgvyfkqfuj table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#vgvyfkqfuj thead, #vgvyfkqfuj tbody, #vgvyfkqfuj tfoot, #vgvyfkqfuj tr, #vgvyfkqfuj td, #vgvyfkqfuj th {
+  border-style: none;
+}
+
+#vgvyfkqfuj p {
+  margin: 0;
+  padding: 0;
+}
+
+#vgvyfkqfuj .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#vgvyfkqfuj .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#vgvyfkqfuj .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#vgvyfkqfuj .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#vgvyfkqfuj .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#vgvyfkqfuj .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#vgvyfkqfuj .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#vgvyfkqfuj .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#vgvyfkqfuj .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#vgvyfkqfuj .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#vgvyfkqfuj .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#vgvyfkqfuj .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#vgvyfkqfuj .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#vgvyfkqfuj .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#vgvyfkqfuj .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vgvyfkqfuj .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#vgvyfkqfuj .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#vgvyfkqfuj .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#vgvyfkqfuj .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vgvyfkqfuj .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#vgvyfkqfuj .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vgvyfkqfuj .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#vgvyfkqfuj .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vgvyfkqfuj .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#vgvyfkqfuj .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#vgvyfkqfuj .gt_left {
+  text-align: left;
+}
+
+#vgvyfkqfuj .gt_center {
+  text-align: center;
+}
+
+#vgvyfkqfuj .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#vgvyfkqfuj .gt_font_normal {
+  font-weight: normal;
+}
+
+#vgvyfkqfuj .gt_font_bold {
+  font-weight: bold;
+}
+
+#vgvyfkqfuj .gt_font_italic {
+  font-style: italic;
+}
+
+#vgvyfkqfuj .gt_super {
+  font-size: 65%;
+}
+
+#vgvyfkqfuj .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#vgvyfkqfuj .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#vgvyfkqfuj .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#vgvyfkqfuj .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#vgvyfkqfuj .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#vgvyfkqfuj .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#vgvyfkqfuj .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="valence" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">valence</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">夜</td>
+<td class="gt_row gt_right" headers="valence">0.133</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Nothing</td>
+<td class="gt_row gt_right" headers="valence">0.186</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">未来</td>
+<td class="gt_row gt_right" headers="valence">0.255</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">老夫婦</td>
+<td class="gt_row gt_right" headers="valence">0.256</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ばかのうた</td>
+<td class="gt_row gt_right" headers="valence">0.259</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ひらめき</td>
+<td class="gt_row gt_right" headers="valence">0.289</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">レコードノイズ</td>
+<td class="gt_row gt_right" headers="valence">0.324</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">ミスユー</td>
+<td class="gt_row gt_right" headers="valence">0.328</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">知らない</td>
+<td class="gt_row gt_right" headers="valence">0.339</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">夜中唄</td>
+<td class="gt_row gt_right" headers="valence">0.351</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>下位曲は<code>energy</code>と指標と被っていない。「昔は暗い曲ばっかりだった」と本人が言っていたのと合っている。私は全く分からないけど、曲の調と関係しているのかも？</p>
+</section>
+<section id="acousticnessを見てみる" class="level3">
+<h3 class="anchored" data-anchor-id="acousticnessを見てみる"><code>acousticness</code>を見てみる</h3>
+<p>これはさすがに分かりやすい気がする。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">top10</span>(<span class="st">"acousticness"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="sryahplsyz" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#sryahplsyz table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#sryahplsyz thead, #sryahplsyz tbody, #sryahplsyz tfoot, #sryahplsyz tr, #sryahplsyz td, #sryahplsyz th {
+  border-style: none;
+}
+
+#sryahplsyz p {
+  margin: 0;
+  padding: 0;
+}
+
+#sryahplsyz .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#sryahplsyz .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#sryahplsyz .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#sryahplsyz .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#sryahplsyz .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#sryahplsyz .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#sryahplsyz .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#sryahplsyz .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#sryahplsyz .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#sryahplsyz .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#sryahplsyz .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#sryahplsyz .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#sryahplsyz .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#sryahplsyz .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#sryahplsyz .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sryahplsyz .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#sryahplsyz .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#sryahplsyz .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#sryahplsyz .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sryahplsyz .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#sryahplsyz .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sryahplsyz .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#sryahplsyz .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sryahplsyz .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#sryahplsyz .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#sryahplsyz .gt_left {
+  text-align: left;
+}
+
+#sryahplsyz .gt_center {
+  text-align: center;
+}
+
+#sryahplsyz .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#sryahplsyz .gt_font_normal {
+  font-weight: normal;
+}
+
+#sryahplsyz .gt_font_bold {
+  font-weight: bold;
+}
+
+#sryahplsyz .gt_font_italic {
+  font-style: italic;
+}
+
+#sryahplsyz .gt_super {
+  font-size: 65%;
+}
+
+#sryahplsyz .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#sryahplsyz .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#sryahplsyz .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#sryahplsyz .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#sryahplsyz .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#sryahplsyz .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#sryahplsyz .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="acousticness" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">acousticness</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">さようならのうみ (Instrumental)</td>
+<td class="gt_row gt_right" headers="acousticness">0.990</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">デイジーお味噌汁 (Instrumental)</td>
+<td class="gt_row gt_right" headers="acousticness">0.974</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">夜</td>
+<td class="gt_row gt_right" headers="acousticness">0.971</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">口づけ</td>
+<td class="gt_row gt_right" headers="acousticness">0.927</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">エピソード</td>
+<td class="gt_row gt_right" headers="acousticness">0.910</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ばらばら</td>
+<td class="gt_row gt_right" headers="acousticness">0.885</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ひらめき</td>
+<td class="gt_row gt_right" headers="acousticness">0.881</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">バイト</td>
+<td class="gt_row gt_right" headers="acousticness">0.880</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">スカート</td>
+<td class="gt_row gt_right" headers="acousticness">0.877</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">子供</td>
+<td class="gt_row gt_right" headers="acousticness">0.871</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>初期曲が多め。数値も高め。試しに<code>acousticness</code>が0.8より大きい曲を見てみる。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(acousticness <span class="sc">&gt;</span> <span class="fl">0.8</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album, year, track, acousticness) <span class="sc">%&gt;%</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="onhbotnvio" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#onhbotnvio table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#onhbotnvio thead, #onhbotnvio tbody, #onhbotnvio tfoot, #onhbotnvio tr, #onhbotnvio td, #onhbotnvio th {
+  border-style: none;
+}
+
+#onhbotnvio p {
+  margin: 0;
+  padding: 0;
+}
+
+#onhbotnvio .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#onhbotnvio .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#onhbotnvio .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#onhbotnvio .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#onhbotnvio .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#onhbotnvio .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#onhbotnvio .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#onhbotnvio .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#onhbotnvio .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#onhbotnvio .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#onhbotnvio .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#onhbotnvio .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#onhbotnvio .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#onhbotnvio .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#onhbotnvio .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#onhbotnvio .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#onhbotnvio .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#onhbotnvio .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#onhbotnvio .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#onhbotnvio .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#onhbotnvio .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#onhbotnvio .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#onhbotnvio .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#onhbotnvio .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#onhbotnvio .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#onhbotnvio .gt_left {
+  text-align: left;
+}
+
+#onhbotnvio .gt_center {
+  text-align: center;
+}
+
+#onhbotnvio .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#onhbotnvio .gt_font_normal {
+  font-weight: normal;
+}
+
+#onhbotnvio .gt_font_bold {
+  font-weight: bold;
+}
+
+#onhbotnvio .gt_font_italic {
+  font-style: italic;
+}
+
+#onhbotnvio .gt_super {
+  font-size: 65%;
+}
+
+#onhbotnvio .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#onhbotnvio .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#onhbotnvio .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#onhbotnvio .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#onhbotnvio .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#onhbotnvio .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#onhbotnvio .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="acousticness" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">acousticness</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">口づけ</td>
+<td class="gt_row gt_right" headers="acousticness">0.927</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">夜</td>
+<td class="gt_row gt_right" headers="acousticness">0.971</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">スカート</td>
+<td class="gt_row gt_right" headers="acousticness">0.877</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">エピソード</td>
+<td class="gt_row gt_right" headers="acousticness">0.910</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">くだらないの中に</td>
+<td class="gt_row gt_right" headers="acousticness">0.819</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">布団</td>
+<td class="gt_row gt_right" headers="acousticness">0.836</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">バイト</td>
+<td class="gt_row gt_right" headers="acousticness">0.880</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">エピソード</td>
+<td class="gt_row gt_right" headers="year">2011</td>
+<td class="gt_row gt_left" headers="track">ストーブ</td>
+<td class="gt_row gt_right" headers="acousticness">0.859</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ばらばら</td>
+<td class="gt_row gt_right" headers="acousticness">0.885</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">キッチン</td>
+<td class="gt_row gt_right" headers="acousticness">0.812</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">デイジーお味噌汁 (Instrumental)</td>
+<td class="gt_row gt_right" headers="acousticness">0.974</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">子供</td>
+<td class="gt_row gt_right" headers="acousticness">0.871</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">さようならのうみ (Instrumental)</td>
+<td class="gt_row gt_right" headers="acousticness">0.990</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ひらめき</td>
+<td class="gt_row gt_right" headers="acousticness">0.881</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">ばかのうた</td>
+<td class="gt_row gt_right" headers="year">2010</td>
+<td class="gt_row gt_left" headers="track">ばかのうた</td>
+<td class="gt_row gt_right" headers="acousticness">0.846</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>1stアルバム<a href="https://open.spotify.com/album/0Q8mx1yHMWGG69vXrpiDrX?si=W1DODdr0Ri-TMsSiE9sM-A">ばかのうた</a>と2ndアルバム<a href="https://open.spotify.com/album/63gQEvQUZN16y0uROFo1ir?si=ITVb5-NRQWOH8Txg0DmomA">エピソード</a>からが多い。初期アルバムの数曲やシングルのカップリングから試していたポップさが、3rdアルバム<a href="https://open.spotify.com/album/2z8PuJutQ2cqlYpu9K0vxf?si=EdPfboAcRNG-eGZOi8SGVw">Stranger</a>から （厳密には2ndアルバム後のシングル<a href="https://open.spotify.com/album/7qRrk4lJ3aukVtTe2c7Qyq?si=OPpYzcQCQ_W-oW2SSFvvuw">フィルム</a>と<a href="https://open.spotify.com/album/16Qv1FdwQb59zNHBNG94lb?si=CdNsMm1iTV6wTF4XJvZj8w">夢の外へ</a>から）だんだんと増えて今の星野源になっている感じが分かる。</p>
+<p>ちなみに下位10曲。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bottom10</span>(<span class="st">"acousticness"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="iqanoduouw" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#iqanoduouw table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#iqanoduouw thead, #iqanoduouw tbody, #iqanoduouw tfoot, #iqanoduouw tr, #iqanoduouw td, #iqanoduouw th {
+  border-style: none;
+}
+
+#iqanoduouw p {
+  margin: 0;
+  padding: 0;
+}
+
+#iqanoduouw .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#iqanoduouw .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#iqanoduouw .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#iqanoduouw .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#iqanoduouw .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#iqanoduouw .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#iqanoduouw .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#iqanoduouw .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#iqanoduouw .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#iqanoduouw .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#iqanoduouw .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#iqanoduouw .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#iqanoduouw .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#iqanoduouw .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#iqanoduouw .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iqanoduouw .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#iqanoduouw .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#iqanoduouw .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#iqanoduouw .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iqanoduouw .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#iqanoduouw .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iqanoduouw .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#iqanoduouw .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iqanoduouw .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#iqanoduouw .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iqanoduouw .gt_left {
+  text-align: left;
+}
+
+#iqanoduouw .gt_center {
+  text-align: center;
+}
+
+#iqanoduouw .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#iqanoduouw .gt_font_normal {
+  font-weight: normal;
+}
+
+#iqanoduouw .gt_font_bold {
+  font-weight: bold;
+}
+
+#iqanoduouw .gt_font_italic {
+  font-style: italic;
+}
+
+#iqanoduouw .gt_super {
+  font-size: 65%;
+}
+
+#iqanoduouw .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#iqanoduouw .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#iqanoduouw .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#iqanoduouw .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#iqanoduouw .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#iqanoduouw .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#iqanoduouw .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="acousticness" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">acousticness</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Hello Song</td>
+<td class="gt_row gt_right" headers="acousticness">0.000209</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Get a Feel</td>
+<td class="gt_row gt_right" headers="acousticness">0.000328</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">恋</td>
+<td class="gt_row gt_right" headers="acousticness">0.000810</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">アイデア</td>
+<td class="gt_row gt_right" headers="acousticness">0.001970</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">肌</td>
+<td class="gt_row gt_right" headers="acousticness">0.004040</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Nerd Strut (Instrumental)</td>
+<td class="gt_row gt_right" headers="acousticness">0.006970</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Family Song</td>
+<td class="gt_row gt_right" headers="acousticness">0.007880</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Friend Ship</td>
+<td class="gt_row gt_right" headers="acousticness">0.010500</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Present</td>
+<td class="gt_row gt_right" headers="acousticness">0.012600</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Nothing</td>
+<td class="gt_row gt_right" headers="acousticness">0.017300</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>アルバムの並びがちゃんと上位10曲の裏返しになっている。<code>acousticness</code>が0.1より小さい曲を見てみる。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>gen <span class="sc">%&gt;%</span> </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(acousticness <span class="sc">&lt;</span> <span class="fl">0.1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(album, year, track, acousticness) <span class="sc">%&gt;%</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<div id="iefbovchyt" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#iefbovchyt table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#iefbovchyt thead, #iefbovchyt tbody, #iefbovchyt tfoot, #iefbovchyt tr, #iefbovchyt td, #iefbovchyt th {
+  border-style: none;
+}
+
+#iefbovchyt p {
+  margin: 0;
+  padding: 0;
+}
+
+#iefbovchyt .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#iefbovchyt .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#iefbovchyt .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#iefbovchyt .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#iefbovchyt .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#iefbovchyt .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#iefbovchyt .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#iefbovchyt .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#iefbovchyt .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#iefbovchyt .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#iefbovchyt .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#iefbovchyt .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#iefbovchyt .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#iefbovchyt .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#iefbovchyt .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iefbovchyt .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#iefbovchyt .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#iefbovchyt .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#iefbovchyt .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iefbovchyt .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#iefbovchyt .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iefbovchyt .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#iefbovchyt .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iefbovchyt .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#iefbovchyt .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#iefbovchyt .gt_left {
+  text-align: left;
+}
+
+#iefbovchyt .gt_center {
+  text-align: center;
+}
+
+#iefbovchyt .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#iefbovchyt .gt_font_normal {
+  font-weight: normal;
+}
+
+#iefbovchyt .gt_font_bold {
+  font-weight: bold;
+}
+
+#iefbovchyt .gt_font_italic {
+  font-style: italic;
+}
+
+#iefbovchyt .gt_super {
+  font-size: 65%;
+}
+
+#iefbovchyt .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#iefbovchyt .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#iefbovchyt .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#iefbovchyt .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#iefbovchyt .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#iefbovchyt .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#iefbovchyt .gt_indent_5 {
+  text-indent: 25px;
+}
+</style>
+
+<table class="gt_table table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<thead>
+<tr class="header gt_col_headings">
+<th id="album" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">album</th>
+<th id="year" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">year</th>
+<th id="track" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">track</th>
+<th id="acousticness" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">acousticness</th>
+</tr>
+</thead>
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Pop Virus</td>
+<td class="gt_row gt_right" headers="acousticness">0.033900</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">恋</td>
+<td class="gt_row gt_right" headers="acousticness">0.000810</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Get a Feel</td>
+<td class="gt_row gt_right" headers="acousticness">0.000328</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">肌</td>
+<td class="gt_row gt_right" headers="acousticness">0.004040</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Pair Dancer</td>
+<td class="gt_row gt_right" headers="acousticness">0.034600</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Present</td>
+<td class="gt_row gt_right" headers="acousticness">0.012600</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Dead Leaf</td>
+<td class="gt_row gt_right" headers="acousticness">0.041500</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Continues</td>
+<td class="gt_row gt_right" headers="acousticness">0.018600</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">サピエンス</td>
+<td class="gt_row gt_right" headers="acousticness">0.076300</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">アイデア</td>
+<td class="gt_row gt_right" headers="acousticness">0.001970</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Family Song</td>
+<td class="gt_row gt_right" headers="acousticness">0.007880</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Nothing</td>
+<td class="gt_row gt_right" headers="acousticness">0.017300</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">POP VIRUS</td>
+<td class="gt_row gt_right" headers="year">2018</td>
+<td class="gt_row gt_left" headers="track">Hello Song</td>
+<td class="gt_row gt_right" headers="acousticness">0.000209</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">時よ</td>
+<td class="gt_row gt_right" headers="acousticness">0.022400</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Week End</td>
+<td class="gt_row gt_right" headers="acousticness">0.042600</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">SUN</td>
+<td class="gt_row gt_right" headers="acousticness">0.021000</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Nerd Strut (Instrumental)</td>
+<td class="gt_row gt_right" headers="acousticness">0.006970</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Down Town</td>
+<td class="gt_row gt_right" headers="acousticness">0.022700</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="album">YELLOW DANCER</td>
+<td class="gt_row gt_right" headers="year">2015</td>
+<td class="gt_row gt_left" headers="track">Friend Ship</td>
+<td class="gt_row gt_right" headers="acousticness">0.010500</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="album">Stranger</td>
+<td class="gt_row gt_right" headers="year">2013</td>
+<td class="gt_row gt_left" headers="track">知らない</td>
+<td class="gt_row gt_right" headers="acousticness">0.060200</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</div>
+<p>3rdアルバムの<a href="https://open.spotify.com/intl-ja/track/7rSLSZWOvx67HWeUOBqze8?si=91b1cf27d40a4a4c">知らない</a>が一番高くて0.06で、それ以外は全て4thアルバム<a href="https://open.spotify.com/album/3Fj07HA1r20hRdF9eepuax?si=niKL_WFgRkym-fz51z-JRA">YELLOW DANCER</a>と5thアルバム<a href="https://open.spotify.com/album/2GP1RmB0LvvuXOwOmrtG86?si=cYmpkrodSMmUXR19iQnHFQ">POP VIRUS</a>の曲たち。系統がガラッと変わっていることが分かる。</p>
 </section>
 </section>
-<section id="つづく" class="level2">
-<h2 class="anchored" data-anchor-id="つづく">つづく</h2>
+<section id="おわりに" class="level2">
+<h2 class="anchored" data-anchor-id="おわりに">おわりに</h2>
+<p>もう少しできそうだけどここまでにします。</p>
+<p>初回なので指標を見つつ、自分が曲を聴いてきた感覚と数値を答え合わせする回でした。星野源曲を聴きながら作業するの楽しかった。まだまだできる。</p>
+<p>今後は、アルバム曲以外も含めたり、大好きカップリング曲に焦点を当てたり、主成分分析（できるかな）もしてみたい。</p>
+<p>最新アルバムPOP VIRUSが発売されて6年（！？）、ワールドツアーとコロナ禍を経て、音楽の聴かれ方も、作曲方法も変わってまた進化しているので、最近の曲も見てみたいところ。次のアルバムが発売される時にはどんな曲がどんな曲順で入るんだろうと考えるのが楽しいです。</p>
+<p>曲名やアルバム名にはリンクを貼っているのでぜひ聴いてみてください。</p>
 </section>
 
 </main>

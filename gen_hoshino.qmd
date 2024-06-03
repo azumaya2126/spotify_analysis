@@ -1,20 +1,20 @@
 ---
 title: "星野源のアルバム楽曲を分析してみる"
 author: "あずま"
-date: "2024-05-29"
+date: "更新: `r Sys.Date()`"
 format:
   html:
     toc: TRUE
     toc_depth: 2
     toc_float: TRUE
     highlight: "tango"
-    code-fold: TRUE
-link-external-newwindow: TRUE
+    link-external-newwindow: TRUE
 ---
 
-## やること
+## はじめに
 
-RでSpotify分析やってみる第一弾、初回なので何ができるかを確かめつつ、星野源のアルバム楽曲を数値で可視化してみる。
+RでSpotify分析やってみる初回。
+何ができるかを確かめつつ、星野源のアルバム楽曲の数値を可視化してみる。
 
 
 ## 準備
@@ -24,7 +24,8 @@ RでSpotify分析やってみる第一弾、初回なので何ができるかを
 ```{r eval = FALSE}
 # パッケージ読み込み
 pacman::p_load(spotifyr, tidyverse, 
-               corrplot) # 今回は相関行列表を出力したい
+               corrplot, # 相関行列表を出力したい
+               gt)    # 表を綺麗に出力したい
 
 # API取得
 Sys.setenv(SPOTIFY_CLIENT_ID = "xxxxxxxxxxxxxxxxxxxxx")
@@ -33,7 +34,7 @@ access_token <- get_spotify_access_token()
 ```
 
 ```{r include = FALSE}
-pacman::p_load(spotifyr, tidyverse, corrplot)
+pacman::p_load(spotifyr, tidyverse, corrplot, gt)
 Sys.setenv(SPOTIFY_CLIENT_ID = "44af3e1025034575bf0766d197d738e6")
 Sys.setenv(SPOTIFY_CLIENT_SECRET = "d96455b022fe4e04876162dfab9c66b5")
 access_token <- get_spotify_access_token()
@@ -41,7 +42,7 @@ access_token <- get_spotify_access_token()
 
 
 
-## 星野源の楽曲情報を取りに行く
+## 楽曲情報取得
 
 
 `get_artist_audio_features`関数を使って、アーティストの楽曲情報を取りに行く。引数にはアーティスト名もしくはアーティストIDを入れる。
@@ -51,26 +52,28 @@ gen <- get_artist_audio_features("Gen Hoshino")
 ```
 
 ::: {.callout-tip appearance="simple"}
-アーティストIDはSpotifyの[アーティストページ](https://open.spotify.com/intl-ja/artist/1S2S00lgLYLGHWA44qGEUs?si=wODSUxHNRj-_zgKo-dMrWQ)の　artist/[**XXXXXX**]{.underline}?si=　の部分
+### アーティストIDはどこ
+
+Spotifyの[アーティストページ](https://open.spotify.com/intl-ja/artist/1S2S00lgLYLGHWA44qGEUs?si=wODSUxHNRj-_zgKo-dMrWQ)のURLのうち　artist/[**XXXXXX**]{.underline}?si=　の部分をコピペ
 :::
 
-確認してみるとちゃんと星野源の情報が取れています。最新が上に表示されるのね。
+最初4行だけ確認してみるとちゃんと星野源の楽曲情報が取れています。最新が上に表示されるのね。EPやシングルは含まれていません。
 
 ```{r}
-head(gen)
+head(gen, 4)
 ```
 
-列多すぎるので列名だけ見てみる。いろんなことできそうで楽しい。`dancability`なんて星野源の分析したくなるでしょ。
+列が多すぎるので列名だけ見てみる。いろんなことできそう。
 
 ```{r}
 colnames(gen)
 ```
 
-## 指標を確認
+## 指標
 
-分からなさそうな指標をChat GPTに聞いてみた。間違っているかもしれない。
+分からなさそうな指標をChat GPTに聞いてみた。（間違っているかもしれない。）
 
-`dancability`
+`danceability`
 
 :   楽曲がどれだけ踊りやすいかを示します。0.0から1.0までの範囲で、1.0に近いほどダンサブルです。
 
@@ -118,60 +121,226 @@ colnames(gen)
 
 :   楽曲の長さをミリ秒で表します。
 
-なんとなくわかったので、使いそうな列だけ抽出する。
+使いそうな列だけ抽出する。
 
 ```{r}
 gen <- gen %>% 
   select(album_name, album_release_year, track_name, 
-         danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)
+         danceability, energy, loudness, speechiness, acousticness, instrumentalness, liveness, valence,
+         tempo, duration_ms) %>% 
+  rename(album = album_name, 
+         year = album_release_year,
+         track = track_name) # 長いので略します
 
-head(gen)
+head(gen, 4)
+
 ```
 
 ## 分析
 
-今回は、星野源のアルバム5枚の変遷を耳で知っているけど、それって数値にどう表れているんだろう？を見てみたい。特に、`dancability`が気になる。
+今回は「星野源のアルバム5枚の変遷を耳で知っているけど、それって数値にどう表れているんだろう？」を見てみたい。
+
+星野源のこれまでのアルバム名と発売年
+
+```{r}
+gen %>% 
+  select(album, year) %>% 
+  unique() %>% # 一意の値を抽出
+  arrange(year) %>% 
+  gt() # 綺麗な表にする
+```
+
+### 相関
 
 とりあえずアルバム5枚全曲で指標の相関を見てみる。
 
 ```{r}
 gen %>% 
-  select_if(is.numeric) %>% 
-  cor() %>% 
-  corrplot(tl.col="black",  addCoef.col = "black", method = "shade", shade.col = NA)
-
+  select_if(is.numeric) %>% # 数値型の列のみ選択
+  cor(use = "pairwise.complete.obs") %>%
+  corrplot(tl.col="black",  addCoef.col = "black", method = "square", shade.col = NA)
 
 ```
 
-`dancability`と`energy` って相関ないんだ。
+(見づらい。列数が多くても簡単に綺麗に見やすく相関行列表が出力される方法を模索中)
 
-しかも`dancability`と`tempo`って負の相関なんだ！？`tempo`って`dancability`以外とほとんど相関がないから、他のエネルギッシュとかポジティブさはテンポの要素を抜いた指標になっているのかしら。
+ざっくり感想
 
-ほかには、`album_release_year`と`loudness`は正の相関、`album_release_year`と`acousticness`は負の相関なので、昔の曲の方が静かでアコースティックな体感と合ってますね。`album_release_year` と`duration_ms`を見ると正の相関なので、最近の曲は短いって世間の流れに乗っていない。これもラジオで聴く話と近い気が。
+-   `danceability`と`energy` って相関強くないんだ
 
-### `dancability`を見てみる
+-   しかも、`danceability`と`tempo`って負の相関なんだ！？そういやダンスミュージックだからといってテンポが速いわけではないな
 
-`dancability`が高い順トップ10を見てみる。
+-   `tempo`は、`danceability`以外とほとんど相関がないから、他のエネルギッシュとかポジティブさはテンポの要素を抜いた指標になっている？
 
-[桜の森](https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d){target="_blank"}が堂々1位で嬉しくなりました。他には、[Sonow Men](https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a)、[Down Town](https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384)、[湯気](https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8)あたり、納得の布陣。[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)や[ストーブ](https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960)はちょっと意外。
+-   `year`と`loudness`は正の相関、`year`と`acousticness`は負の相関なので、昔の曲の方が静かでアコースティックな体感と合ってますね。
+
+-   `year` と`duration_ms`を見ると正の相関なので、最近の曲は短いって時流とは違う方向。
+
+
+### 箱ひげ図
+
+0 ~ 1の範囲を取る7指標の分布を見てみる。
 
 ```{r}
 gen %>% 
-  arrange(desc(danceability)) %>% 
-  select(album_name, album_release_year, track_name, danceability) %>% 
-  head(10)
+  pivot_longer(cols = c(danceability, energy, speechiness, acousticness, instrumentalness, liveness, valence), # 指標を1つの列に
+               names_to = "measurement") %>% # 列名を変える
+  ggplot(aes(x = measurement, y = value, colour = measurement)) + 
+  geom_boxplot() + 
+  theme_classic()
+  
 ```
 
-ちなみに下位10曲はこちら。個人的に[肌](https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9)は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね、割と納得。
+-   `acousticness`は、ほぼ0からほぼ1まで分布が広い。初期アルバムのギター1本弾き語りに近い曲から、最新アルバムのばちばちダンスミュージックまであるのでこれが反映されていそう。
+
+-   一方、`danceability`は案外幅が狭くて、弾き語り曲でも0.3くらいは持っているっぽい。
+
+-   `energy`と`valence`は幅広い分布が似ている。エネルギッシュと陽気の違いはなんだ。
+
+-   `instrumentalness`で大きく外れている3曲は、インスト曲たち。それはそう。（[デイジーお味噌汁](https://open.spotify.com/intl-ja/track/11GmLHGV7jjERqaOforxzW?si=6233489c44b24802)、[さようならのうみ](https://open.spotify.com/intl-ja/track/4GldX1uRkauyCaSKr0L6hk?si=3920b94ef05e43cd)、[Nerd Strut](https://open.spotify.com/intl-ja/track/4N9LKH39qdHk7TQTXEroLG?si=bb59b00ed3c64059)）
+
+-   `liveness`では2曲（[化物](https://open.spotify.com/intl-ja/track/5IOKl1EeyOw7Bjp9E84tdw?si=ce33f467cda04bfe)、アルバム隠しトラックの[Stranger](https://open.spotify.com/intl-ja/track/0Kuss0r5HEuHMkL67BfhfO?si=b0f670ccb6d846ab)）が大きく外れている。あまりピンとこない。
+
+-   話し言葉の程度を表す`speechiness`は、上位はが[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)、[アイデア](https://open.spotify.com/intl-ja/track/7jgqNMnqAT9FghC1uSYTFF?si=6f9711e0ce6245f9)、[肌](https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9)、[Soul](https://open.spotify.com/intl-ja/track/11UD9IOlsEbK4fUURUziTj?si=c272198ec6f34099)。分かるような分からないような。
+
+
+
+
+### `danceability`を見てみる
+
+`danceability`が高い順トップ10を見てみる。
 
 ```{r}
 gen %>% 
-  arrange(desc(danceability)) %>% 
-  select(album_name, album_release_year, track_name, danceability) %>% 
-  tail(10)
+  arrange(desc(danceability)) %>% # desc(降順)で並べる
+  select(album, year, track, danceability) %>% 
+  head(10) %>% 
+  gt()
 ```
 
-## つづく
+[桜の森](https://open.spotify.com/intl-ja/track/7hjZPeA13HBpkkQw9Hzrqe?si=acdc7fdff708422d)が堂々1位で嬉しくなりました。他には、[Sonow Men](https://open.spotify.com/intl-ja/track/4EAFrjOpnbkUel0WrD9TTy?si=ceeee45cd7e9445a)、[Down Town](https://open.spotify.com/intl-ja/track/5g5ioDgBlDUQduaGJHSRkN?si=ad8e4054b2d94384)、[湯気](https://open.spotify.com/intl-ja/track/3EMr3gNOpGCC4Uaty4sCcB?si=36a38ea2f71b49e8)あたり、納得の布陣。[KIDS](https://open.spotify.com/intl-ja/track/48xCwzYgpO629btODlQxgK?si=05492d2551354f2c)や[ストーブ](https://open.spotify.com/intl-ja/track/5XiivA3rLyjko6RxDmeRL5?si=3281b36f86614960)はちょっと意外。
+
+コードのコピペも面倒なので、引数に指標名を入れたら上位/下位10曲を表で出力する関数を作ってみます。
+
+```{r}
+# 上位10曲
+top10 <- function(measurement){
+  gen %>% 
+    arrange(desc(!!sym(measurement))) %>% #降順
+    select(album, year, track, !!sym(measurement)) %>% # アルバム名、年、曲名と指定した指標を残す
+    head(10) %>% 
+    gt()
+}
+
+# 下位10曲
+bottom10 <- function(measurement){
+  gen %>% 
+    arrange(!!sym(measurement)) %>% # 昇順
+    select(album, year, track, !!sym(measurement)) %>% 
+    head(10) %>% 
+    gt()
+}
+
+```
+
+::: {.callout-tip appearance="simple"}
+### `!!sym()`ってなんだ
+
+今回の関数では、引数に指定した文字列を変数名として使いたくて`!!sym()`というおまじないをつけました。通常、R上で`"`で囲まれたものは文字列として認識されますが、どうやら[rlang](https://github.com/rstudio/cheatsheets/blob/main/tidyeval.pdf)によって、クオーテーション`"`があるなしと変数の行き来ができるみたいです。
+
+かなり複雑で、あまり分かっていません。勉強したい。
+:::
+
+ということで下位10曲はこちら。
+
+```{r}
+bottom10("danceability") # 関数の引数指定は"文字列"で
+```
+
+個人的に[肌](https://open.spotify.com/intl-ja/track/0YEjAa5T0NQwvB7uz1dJvW?si=1320ab81c31b41a9)は踊り曲だと思っていた。トップ10より古い年代のものが入ってますね、割と納得。
 
 
+### `energy`を見てみる
+
+上位10曲はこちら。
+
+```{r}
+top10("energy")
+```
+
+とても納得。テンポ速そうなイメージの曲が多いけど、[Continues](https://open.spotify.com/intl-ja/track/2RjN72vwuliC8FX4CcgylQ?si=91e94523f9644129)など、案外速すぎずしっかり踏みしめる曲って感じ。そういや[恋](https://open.spotify.com/intl-ja/track/1flvuaMS27JxpEBL0u2cWc?si=32de99c4bacc4013)も特別速くはない。
+[Present](https://open.spotify.com/intl-ja/track/3Hz1Rui4VVCnVl6QMpjCYE?si=8421f36f7c224ff1)は少し意外だけど、ホーン隊もコーラスもがっつりでR&Bっぽい感じがエネルギッシュなのかしら。
+
+下位10曲はこちら。
+
+```{r}
+bottom10("energy")
+```
+箱ひげ図でも分布の幅が広いなと思っていたけど、1位の[Crazy Crazy](https://open.spotify.com/intl-ja/track/57T1nEAUura1AX0JgJDVDu?si=afcae2463d614aa2)が0.93のところ、下位6曲は0.1を切っている。
+
+こちらも納得の布陣。初期曲や、ポップなアルバムの中の休み曲（[口づけ](https://open.spotify.com/intl-ja/track/1TEBnwVFbv99nGdeqc5wsr?si=476f704fc5434345)、[夜](https://open.spotify.com/intl-ja/track/2Ln7KVpxs0DetedsRx2pNj?si=5838a711e70f45b8)）という感じ。個人的には[YELLOW DANCER](https://open.spotify.com/album/3Fj07HA1r20hRdF9eepuax?si=niKL_WFgRkym-fz51z-JRA)のアルバム曲順のバランス、とてもお気に入り。高校受験期に擦り切れるほど聴いた。
+
+### `valence`を見てみる
+
+`energy`と近いんじゃないかと予想している。
+
+```{r}
+top10("valence")
+```
+
+たしかに上位5/10曲が被っている。1stアルバムの[穴を掘る](https://open.spotify.com/intl-ja/track/5jgmSmIUIMjuaoDbER4Wgs?si=102b46ed86a84627)と[兄妹](https://open.spotify.com/intl-ja/track/1yOqNi0aXqiZJw6eBGWqW1?si=c873c0651c31426b)は意外。ただ、曲を改めて聴いてみると陽の気は感じる。
+
+```{r}
+bottom10("valence")
+```
+
+下位曲は`energy`と指標と被っていない。「昔は暗い曲ばっかりだった」と本人が言っていたのと合っている。私は全く分からないけど、曲の調と関係しているのかも？
+
+
+### `acousticness`を見てみる
+
+これはさすがに分かりやすい気がする。
+
+```{r}
+top10("acousticness")
+```
+
+初期曲が多め。数値も高め。試しに`acousticness`が0.8より大きい曲を見てみる。
+
+```{r}
+gen %>% 
+  filter(acousticness > 0.8) %>% 
+  select(album, year, track, acousticness) %>%
+  gt()
+```
+1stアルバム[ばかのうた](https://open.spotify.com/album/0Q8mx1yHMWGG69vXrpiDrX?si=W1DODdr0Ri-TMsSiE9sM-A)と2ndアルバム[エピソード](https://open.spotify.com/album/63gQEvQUZN16y0uROFo1ir?si=ITVb5-NRQWOH8Txg0DmomA)からが多い。初期アルバムの数曲やシングルのカップリングから試していたポップさが、3rdアルバム[Stranger](https://open.spotify.com/album/2z8PuJutQ2cqlYpu9K0vxf?si=EdPfboAcRNG-eGZOi8SGVw)から
+（厳密には2ndアルバム後のシングル[フィルム](https://open.spotify.com/album/7qRrk4lJ3aukVtTe2c7Qyq?si=OPpYzcQCQ_W-oW2SSFvvuw)と[夢の外へ](https://open.spotify.com/album/16Qv1FdwQb59zNHBNG94lb?si=CdNsMm1iTV6wTF4XJvZj8w)から）だんだんと増えて今の星野源になっている感じが分かる。
+
+ちなみに下位10曲。
+
+```{r}
+bottom10("acousticness")
+```
+
+アルバムの並びがちゃんと上位10曲の裏返しになっている。`acousticness`が0.1より小さい曲を見てみる。
+
+```{r}
+gen %>% 
+  filter(acousticness < 0.1) %>% 
+  select(album, year, track, acousticness) %>%
+  gt()
+```
+3rdアルバムの[知らない](https://open.spotify.com/intl-ja/track/7rSLSZWOvx67HWeUOBqze8?si=91b1cf27d40a4a4c)が一番高くて0.06で、それ以外は全て4thアルバム[YELLOW DANCER](https://open.spotify.com/album/3Fj07HA1r20hRdF9eepuax?si=niKL_WFgRkym-fz51z-JRA)と5thアルバム[POP VIRUS](https://open.spotify.com/album/2GP1RmB0LvvuXOwOmrtG86?si=cYmpkrodSMmUXR19iQnHFQ)の曲たち。系統がガラッと変わっていることが分かる。
+
+## おわりに
+
+もう少しできそうだけどここまでにします。
+
+初回なので指標を見つつ、自分が曲を聴いてきた感覚と数値を答え合わせする回でした。星野源曲を聴きながら作業するの楽しかった。まだまだできる。
+
+今後は、アルバム曲以外も含めたり、大好きカップリング曲に焦点を当てたり、主成分分析（できるかな）もしてみたい。
+
+最新アルバムPOP VIRUSが発売されて6年（！？）、ワールドツアーとコロナ禍を経て、音楽の聴かれ方も、作曲方法も変わってまた進化しているので、最近の曲も見てみたいところ。次のアルバムが発売される時にはどんな曲がどんな曲順で入るんだろうと考えるのが楽しいです。
+
+曲名やアルバム名にはリンクを貼っているのでぜひ聴いてみてください。
 

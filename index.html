@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="あずま">
-<meta name="dcterms.date" content="2024-05-29">
+<meta name="dcterms.date" content="2024-06-03">
 
 <title>RでSpotifyの分析</title>
 <style>
@@ -89,13 +89,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#パッケージのインストール" id="toc-パッケージのインストール" class="nav-link" data-scroll-target="#パッケージのインストール">パッケージのインストール</a></li>
   <li><a href="#api情報を取得" id="toc-api情報を取得" class="nav-link" data-scroll-target="#api情報を取得">API情報を取得</a></li>
   </ul></li>
-  <li><a href="#分析したこと" id="toc-分析したこと" class="nav-link" data-scroll-target="#分析したこと">分析したこと</a>
+  </ul></li>
+  <li><a href="#分析" id="toc-分析" class="nav-link" data-scroll-target="#分析">分析</a>
   <ul class="collapse">
   <li><a href="#初めての分析" id="toc-初めての分析" class="nav-link" data-scroll-target="#初めての分析">初めての分析</a></li>
   </ul></li>
-  <li><a href="#これから分析したいネタ" id="toc-これから分析したいネタ" class="nav-link" data-scroll-target="#これから分析したいネタ">これから分析したいネタ</a></li>
+  <li><a href="#これから" id="toc-これから" class="nav-link" data-scroll-target="#これから">これから</a></li>
   <li><a href="#参考" id="toc-参考" class="nav-link" data-scroll-target="#参考">参考</a></li>
-  </ul></li>
   </ul>
 </nav>
 </div>
@@ -120,7 +120,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 29, 2024</p>
+      <p class="date">June 3, 2024</p>
     </div>
   </div>
   
@@ -156,8 +156,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <i class="callout-icon"></i>
 </div>
 <div class="callout-body-container">
-<p>最近は<code>pacman</code>パッケージの<code>p_load()</code> をよく使っています。<code>install.packages()</code>と<code>library()</code>の合わせ技みたいな感じで、パッケージがインストールされていなかったらインストールを含め、読み込みまでやってくれる。</p>
+<p>最近は<code>pacman</code>パッケージの<code>p_load()</code>をよく使っています。<code>install.packages()</code>と<code>library()</code>の合わせ技で、パッケージがインストールされていなかったらインストールを含め、読み込みまでやってくれる。</p>
 <p>R人生で一度だけ<code>pacman</code>をインストールしておけば、「このパッケージってインストールしてたかな」から解放されるし、パッケージ読み込みが1行で済むのは案外便利。</p>
+<p>他にも続けてライブラリを読み込みたい時は、<code>pacman::p_load(spotifyr, tidyverse)</code>のようにカンマでつなげる。</p>
 </div>
 </div>
 </div>
@@ -166,8 +167,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="api情報を取得">API情報を取得</h3>
 <ol type="1">
 <li><p>Spotifyのアカウントで<a href="https://developer.spotify.com/">Spotify for Developers</a>にログインする</p></li>
-<li><p>DashboardからCreate appでappを作る（appってなんだ？）</p></li>
-<li><p>必要事項に入力してSave（Redirect URIsは何を入れたら分からなかったけど例に書いてあるURL入れたらOKだった。いいのか？）</p></li>
+<li><p>DashboardからCreate appでappを作る</p></li>
+<li><p>必要事項に入力してSave（Redirect URLsは何を入れたら分からなかったけど例に書いてあるURL入れたらOKだった。いいのか？）</p></li>
 <li><p>Dashboardからappを選択して、Settings &gt; Basic InformationからCliant IDとClient secret（隠されている）をコピーして、以下の通り実行</p></li>
 </ol>
 <div class="quarto-figure quarto-figure-center">
@@ -181,35 +182,36 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>access_token <span class="ot">&lt;-</span> <span class="fu">get_spotify_access_token</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>これでSpotifyの情報取り放題！わくわく！</p>
+<p>これでSpotifyの情報取り放題。</p>
 </section>
 </section>
-<section id="分析したこと" class="level2">
-<h2 class="anchored" data-anchor-id="分析したこと">分析したこと</h2>
-<section id="初めての分析" class="level3">
-<h3 class="anchored" data-anchor-id="初めての分析">初めての分析</h3>
-<p><a href="">星野源のアルバム楽曲を分析してみる</a></p>
+</section>
+<section id="分析" class="level1">
+<h1>分析</h1>
+<section id="初めての分析" class="level2">
+<h2 class="anchored" data-anchor-id="初めての分析">初めての分析</h2>
+<p><a href="https://azumaya2126.github.io/spotify_analysis/gen_hoshino.html">星野源のアルバム楽曲を分析してみる</a></p>
 </section>
 </section>
-<section id="これから分析したいネタ" class="level2">
-<h2 class="anchored" data-anchor-id="これから分析したいネタ">これから分析したいネタ</h2>
+<section id="これから" class="level1">
+<h1>これから</h1>
+<p>今後、分析したいネタ</p>
 <ul>
 <li>星野源POP VIRUS以降</li>
-<li>星野源とSAKEROCKって数値違うのかな</li>
+<li>星野源とSAKEROCK</li>
 <li>キリンジ時代の泰之曲と高樹曲</li>
 <li>荒井時代のユーミン</li>
-<li>キリンジとオフコースって似た成分あると思う</li>
-<li>sumikaと緑黄色社会って好きな成分同じだと思う</li>
-<li>大貫妙子「色彩都市」の薬師丸ひろ子・原田知世・ユーミンキャラメルママのカバー違いはなに</li>
+<li>キリンジとオフコースって似た成分ある気がする</li>
+<li>sumikaと緑黄色社会って好きな成分近いと思う</li>
+<li>大貫妙子「色彩都市」カバー、薬師丸ひろ子・原田知世・ユーミンキャラメルママの違い</li>
 <li>似た系統の海外アーティストの曲は何か違うところあるのか</li>
-<li>クラシックってあるのかな？ラヴェルとドビュッシー</li>
+<li>クラシックはどんな数値？ラヴェルとドビュッシー</li>
 </ul>
 </section>
-<section id="参考" class="level2">
-<h2 class="anchored" data-anchor-id="参考">参考</h2>
+<section id="参考" class="level1">
+<h1>参考</h1>
 <p><a href="https://www.rcharlie.com/spotifyr/">spotifyr</a></p>
 <p><a href="https://sunaninattahito.hatenablog.com/entry/2021/06/01/202317">【R】Spotify APIを利用して関連するアーティストをDigりまくる</a></p>
-</section>
 </section>
 
 </main>
@@ -309,6 +311,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         if (link.dataset.originalHref !== undefined) {
           link.href = link.dataset.originalHref;
         }
+          // target, if specified
+          link.setAttribute("target", "_blank");
+          if (link.getAttribute("rel") === null) {
+            link.setAttribute("rel", "noopener");
+          }
       }
     }
   function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
