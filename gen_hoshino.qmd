@@ -162,7 +162,7 @@ gen %>%
 
 ```
 
-(見づらい。列数が多くても簡単に綺麗に見やすく相関行列表が出力される方法を模索中)
+(見づらい。列数が多くても簡単に綺麗に見やすく相関行列表が出力される方法を模索中)→[追記](#add)
 
 ざっくり感想
 
@@ -344,3 +344,75 @@ gen %>%
 
 曲名やアルバム名にはリンクを貼っているのでぜひ聴いてみてください。
 
+## 追記 {#add}
+
+相関係数行列の出力について、[このサイト](http://www.sthda.com/english/wiki/visualize-correlation-matrix-using-correlogram)を教えていただきました。ありがとうございます。
+
+参考にしながら作ってみました。
+
+```{r}
+# デフォルトだと黒文字が見えないので、見えるくらいに5段階で色指定
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+
+gen %>% 
+  select_if(is.numeric) %>%
+  cor() %>%
+  corrplot(method = "color", # セルに色塗りで出力
+           addCoef.col = "black", # 係数の文字色
+           tl.col = "black", # 変数の文字色
+           col = col(200), # 指定した色を200分割グラデーション
+           type = "upper", # 行列の上側のみ表示
+           tl.srt = 45, # 変数名が長いので45度に傾ける
+           diag = FALSE # 同じ変数同士の相関(1)を隠す
+           )
+```
+
+かなり見やすい！
+
+ちなみに有意性の検定結果も組み込むことができるらしい。
+
+```{r}
+# 95%信頼区間でcor.mtest関数の定義（なぜデフォルトじゃないんだ）
+cor.mtest <- function(mat, conf.level = 0.95) {
+    mat <- as.matrix(mat)
+    n <- ncol(mat)
+    p.mat <- matrix(NA, n, n)
+    diag(p.mat) <- 0
+    for (i in 1:(n - 1)) {
+        for (j in (i + 1):n) {
+            if (all(!is.na(mat[, i])) & all(!is.na(mat[, j]))) {
+                tmp <- cor.test(mat[, i], mat[, j], conf.level = conf.level)
+                p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+            }
+        }
+    }
+    colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
+    p.mat
+}
+
+# 相関行列を計算
+cor_matrix <- gen %>% 
+  select_if(is.numeric) %>%
+  cor()
+
+# p値を計算
+p.mat <- cor.mtest(cor_matrix)
+
+corrplot(cor_matrix, 
+         method = "color", 
+         addCoef.col = "black",
+         tl.col = "black", 
+         col = col(200), 
+         type = "upper", 
+         tl.srt = 45, 
+         diag = FALSE,  
+         p.mat = p.mat,
+         sig.level = 0.05, # 閾値
+         insig = "blank" # 有意でないセルは空白に
+         )
+
+```
+
+これはこれでちょっと見にくい気もする。
+
+とにかく、色を調節して変数名を斜めに表示するひと手間を加えることでかなり見やすくなりました。よし！

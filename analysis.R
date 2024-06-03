@@ -9,9 +9,12 @@ access_token <- get_spotify_access_token()
 gen <- get_artist_audio_features("Gen Hoshino") 
 gen <- gen %>% 
   select(album_name, album_release_year, track_name, 
-         danceability, energy, loudness, speechiness, acousticness, valence, tempo, duration_ms)
-
-gen %>% 
+         danceability, energy, loudness, speechiness, acousticness, instrumentalness, liveness, valence,
+         tempo, duration_ms) %>% 
+  rename(album = album_name, 
+         year = album_release_year,
+         track = track_name) 
+  gen %>% 
   summary()
 
 gen %>% 
@@ -32,5 +35,28 @@ gen %>%
 
 gen %>% 
   select_if(is.numeric) %>% # 数値型の列のみ選択
-  cor(use = "pairwise.complete.obs") %>%
+  cor() %>%
   corrplot(tl.col="black",  addCoef.col = "black", method = "square", shade.col = NA)
+
+
+# デフォルトだと黒文字が見えないので、見えるくらいに色指定
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+
+gen %>% 
+  select_if(is.numeric) %>%
+  cor() %>%
+  corrplot(method = "color", # 出力はセルに色塗り
+           addCoef.col = "black", # 係数の文字色
+           tl.col = "black", # 変数の文字色
+           col = col(200), # 色を200分割グラデーション
+           type = "upper", # 行列の上側のみ
+           tl.srt = 45, # 変数名が長いので45度に傾ける
+           diag = FALSE,  # 同じ変数同士の相関(1)を隠す
+           p.mat = p,
+           sig.level = 0.01, # 閾値
+           insig = "blank" # 有意でないセルは空白に
+           )
+
+p <- gen %>% 
+  select_if(is.numeric) %>%
+  cor.mtest()
